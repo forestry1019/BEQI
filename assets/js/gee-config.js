@@ -10,5 +10,5 @@
    3. แทนค่า clientId และ cloudProject ด้านล่างด้วยของจริง แล้ว commit */
 const GEE_CONFIG = {
   clientId: 'YOUR_OAUTH_CLIENT_ID.apps.googleusercontent.com',
-  cloudProject: 'YOUR_GCP_PROJECT_ID'
+  cloudProject: 'beqi-488814'
 };
