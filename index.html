@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BEQI Portfolio — ดัชนีคุณภาพสภาพแวดล้อมเชิงไบโอฟิลิก</title>
+<meta name="description" content="แพลตฟอร์มพอร์ตโฟลิโอดัชนีคุณภาพสภาพแวดล้อมเชิงไบโอฟิลิก (BEQI) พื้นที่ชายฝั่งเขาหลัก จังหวัดพังงา">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>BEQI Portfolio</h1>
+    <p>ดัชนีคุณภาพสภาพแวดล้อมเชิงไบโอฟิลิก · พื้นที่ชายฝั่งเขาหลัก จังหวัดพังงา</p>
+    <!-- แถบบริบทบังคับ: ทุกค่าที่แสดงต้องมีนิยามหน่วยวิเคราะห์และรุ่นพารามิเตอร์กำกับเสมอ (หัวข้อ 5.3.3) -->
+    <div class="ctx" id="ctx"></div>
+  </div>
+</header>
+
+<nav><div class="wrap">
+  <button class="on" data-t="overview">ภาพรวมพอร์ตโฟลิโอ</button>
+  <button data-t="zone">รายละเอียดรายโซน</button>
+  <button data-t="map">แผนที่</button>
+  <button data-t="gap">ช่องว่างและลำดับความสำคัญ</button>
+  <button data-t="cert">การรับรองคุณภาพ</button>
+  <button data-t="quality">ความถูกต้องและความไม่แน่นอน</button>
+  <button data-t="method">ระเบียบวิธีและข้อจำกัด</button>
+</div></nav>
+
+<main class="wrap">
+
+<section id="overview" class="on">
+  <h2>ภาพรวมพอร์ตโฟลิโอ</h2>
+  <p class="lead">คลิกที่การ์ดของโซนเพื่อดูรายละเอียดรายตัวชี้วัด · คะแนนรวมแสดงคู่กับคะแนนรายตัวชี้วัดเสมอตามข้อกำหนด FR4</p>
+  <div class="grid g3" id="cards"></div>
+
+  <div class="warn" id="fr4note"></div>
+
+  <div class="grid g2" style="margin-top:18px">
+    <div class="card"><h3 style="margin-top:0">โครงร่างคะแนนรายตัวชี้วัด</h3>
+      <canvas id="radar" height="300"></canvas></div>
+    <div class="card"><h3 style="margin-top:0">คะแนนรวมพร้อมช่วงความเชื่อมั่น 95%</h3>
+      <canvas id="barBeqi" height="300"></canvas>
+      <p class="note" id="mcnote"></p></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h3 style="margin-top:0">ตารางเปรียบเทียบรายตัวชี้วัด</h3>
+    <div class="ctl">
+      <label><input type="radio" name="agg" value="arith" checked> ค่าเฉลี่ยเลขคณิต (สมการที่ 4.14)</label>
+      <label><input type="radio" name="agg" value="geom"> ค่าเฉลี่ยเรขาคณิต (สมการที่ 4.16)</label>
+    </div>
+    <div style="overflow-x:auto"><table id="cmp"></table></div>
+    <p class="note" id="aggnote"></p>
+  </div>
+</section>
+
+<section id="zone">
+  <h2>รายละเอียดรายโซน</h2>
+  <p class="lead">เลือกโซนเพื่อดูค่าดิบ ค่ามาตรฐาน และสถิติเบื้องหลังของแต่ละตัวชี้วัด</p>
+  <div class="ctl" id="zsel"></div>
+  <div class="grid g2">
+    <div class="card"><h3 style="margin-top:0">ตัวชี้วัดที่ 1 ความหนาแน่นพื้นที่สีเขียว</h3><div id="d1"></div></div>
+    <div class="card"><h3 style="margin-top:0">ตัวชี้วัดที่ 2 การเชื่อมโยงระบบนิเวศ</h3><div id="d2"></div></div>
+    <div class="card"><h3 style="margin-top:0">ตัวชี้วัดที่ 3 การเข้าถึงพื้นที่น้ำธรรมชาติ</h3><div id="d3"></div></div>
+    <div class="card"><h3 style="margin-top:0">ตัวชี้วัดที่ 4 องค์ประกอบเชิงไบโอฟิลิก</h3><div id="d4"></div></div>
+  </div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card"><h3 style="margin-top:0">สัดส่วนสิ่งปกคลุมดิน (ร้อยละของพื้นที่บก)</h3><canvas id="lulc" height="260"></canvas></div>
+    <div class="card"><h3 style="margin-top:0">คะแนนแบบตรวจสอบ 14 รูปแบบ</h3><canvas id="chk" height="260"></canvas></div>
+  </div>
+</section>
+
+<section id="map">
+  <h2>แผนที่หน่วยวิเคราะห์</h2>
+  <p class="lead">กรอบแสดงขอบเขตสำรวจของแต่ละโซน · หน่วยวิเคราะห์จริงคือแถบพื้นที่บกกว้าง 1 กิโลเมตรจากแนวน้ำภายในกรอบนี้</p>
+  <div id="map"></div>
+  <p class="note" id="mapnote"></p>
+</section>
+
+<section id="gap">
+  <h2>ช่องว่างถึงขอบเขตประสิทธิภาพและลำดับความสำคัญ</h2>
+  <p class="lead">คำนวณผลต่างระหว่างคะแนนของแต่ละโซนกับค่าสูงสุดที่สังเกตได้รายตัวชี้วัด แล้วถ่วงน้ำหนักด้วยขนาดพื้นที่บก</p>
+  <div class="grid g2">
+    <div class="card"><h3 style="margin-top:0">ช่องว่างรายตัวชี้วัด</h3><canvas id="gapc" height="300"></canvas></div>
+    <div class="card"><h3 style="margin-top:0">สัดส่วนการจัดสรรงบประมาณที่เสนอ</h3><canvas id="prio" height="300"></canvas>
+      <p class="note">ดัชนีความสำคัญ = ผลรวมช่องว่าง × พื้นที่บก</p></div>
+  </div>
+  <div class="card" style="margin-top:16px"><div style="overflow-x:auto"><table id="gapt"></table></div></div>
+  <div class="warn" id="gapnote"></div>
+</section>
+
+<section id="cert">
+  <h2>ระบบรับรองคุณภาพ BEQI</h2>
+  <p class="lead">ระดับการรับรองพิจารณาจากคะแนนรวมควบคู่กับเงื่อนไขขั้นต่ำรายตัวชี้วัด เพื่อป้องกันการชดเชยระหว่างมิติ</p>
+  <div class="card"><div style="overflow-x:auto"><table id="rules"></table></div></div>
+  <div class="card" style="margin-top:16px">
+    <h3 style="margin-top:0">สถานะการรับรองของพื้นที่ในพอร์ตโฟลิโอ</h3>
+    <div style="overflow-x:auto"><table id="certt"></table></div>
+    <div class="warn" id="certnote"></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3 style="margin-top:0">เครื่องมือจำลองผลการรับรอง</h3>
+    <p class="note" style="margin-top:0">ปรับค่ามาตรฐานรายตัวชี้วัดเพื่อดูว่าระดับการรับรองเปลี่ยนแปลงอย่างไร</p>
+    <div id="sim"></div>
+    <div id="simout" style="margin-top:14px"></div>
+  </div>
+</section>
+
+<section id="quality">
+  <h2>ความถูกต้องของการจำแนกและความไม่แน่นอนของดัชนี</h2>
+  <p class="lead">ตัวชี้วัดที่ 1–3 คำนวณจากผลจำแนกชุดเดียวกัน ความคลาดเคลื่อนจึงแพร่กระจายเข้าสู่ทั้งสามตัวพร้อมกันและไม่เป็นอิสระต่อกัน</p>
+  <div class="grid g3" id="accCards"></div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card"><h3 style="margin-top:0">เมทริกซ์ความคลาดเคลื่อน (n = 1,768)</h3>
+      <div style="overflow-x:auto"><table id="cmt"></table></div></div>
+    <div class="card"><h3 style="margin-top:0">การวิเคราะห์ความไวต่อทางเลือกเชิงระเบียบวิธี</h3>
+      <div style="overflow-x:auto"><table id="senst"></table></div>
+      <p class="note" id="sensnote"></p></div>
+  </div>
+</section>
+
+<section id="method">
+  <h2>ระเบียบวิธีและข้อจำกัด</h2>
+  <div class="grid g2">
+    <div class="card"><h3 style="margin-top:0">พารามิเตอร์การประมวลผล</h3><div id="params"></div></div>
+    <div class="card"><h3 style="margin-top:0">ช่วงอ้างอิงและการแปลงค่ามาตรฐาน</h3>
+      <div style="overflow-x:auto"><table id="anch"></table></div>
+      <p class="note">n<sub>i</sub> = min( max( (x<sub>i</sub> − x<sub>i,min</sub>) / (x<sub>i,max</sub> − x<sub>i,min</sub>), 0 ), 1 ) &nbsp;&nbsp;(สมการที่ 4.1)</p>
+      <p class="note">BEQI = ( Σ w<sub>i</sub> · n<sub>i</sub> ) × 100 , &nbsp; w<sub>i</sub> = 0.25 &nbsp;&nbsp;(สมการที่ 4.14–4.15)</p></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h3 style="margin-top:0">ข้อจำกัดที่ต้องระบุเมื่ออ้างอิงผล</h3>
+    <ul id="lims" style="margin:0;padding-left:20px;font-size:15px"></ul>
+  </div>
+</section>
+
+</main>
+
+<footer><div class="wrap">
+  <p style="margin:0 0 6px">BEQI Portfolio — ต้นแบบแพลตฟอร์มตามข้อกำหนดเชิงออกแบบในบทที่ 5 ของดุษฎีนิพนธ์</p>
+  <p style="margin:0" id="foot"></p>
+</div></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

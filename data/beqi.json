@@ -1,0 +1,577 @@
+{
+ "meta": {
+  "title": "BEQI Portfolio",
+  "version": "v4",
+  "generated": "2026-08-01",
+  "analysis_unit": "แถบพื้นที่บกกว้าง 1,000 เมตร วัดจากแนวน้ำเข้าสู่แผ่นดิน",
+  "analysis_unit_en": "Coastal land strip 1,000 m from the shoreline",
+  "crs": "WGS84 / UTM Zone 47N (EPSG:32647)",
+  "param_version": "BEQI-v4 (2024-01-14 → 2025-12-24)",
+  "params": {
+   "collection": "COPERNICUS/S2_SR_HARMONIZED (L2A)",
+   "tile": "47PMK",
+   "n_scenes": 37,
+   "cloud_filter_pct": 30,
+   "mean_cloud_pct": 16.02,
+   "cloud_score_plus": 0.6,
+   "s1_scenes": 225,
+   "scale_m": 10,
+   "mspa_scale_m": 20,
+   "buffer_scale_m": 50,
+   "ndvi_threshold": 0.4,
+   "pc_distance_m": 500,
+   "edge_width_m": 20,
+   "min_patch_ha": 0.5
+  },
+  "accuracy": {
+   "oa": 0.8218,
+   "kappa": 0.7772,
+   "n_total": 6000,
+   "n_train": 4232,
+   "n_valid": 1768,
+   "trees": 300,
+   "predictors": 16,
+   "cm": [
+    275.0,
+    39.0,
+    15.0,
+    6.0,
+    13.0,
+    32.0,
+    277.0,
+    21.0,
+    19.0,
+    9.0,
+    13.0,
+    9.0,
+    322.0,
+    21.0,
+    2.0,
+    7.0,
+    15.0,
+    34.0,
+    273.0,
+    16.0,
+    12.0,
+    3.0,
+    4.0,
+    25.0,
+    306.0
+   ],
+   "producers": [
+    0.7902,
+    0.7737,
+    0.8774,
+    0.7913,
+    0.8743
+   ],
+   "consumers": [
+    0.8112,
+    0.8076,
+    0.8131,
+    0.7936,
+    0.8844
+   ],
+   "classes": [
+    "ป่าไม้และป่าชายเลน",
+    "ไม้พุ่ม ทุ่งหญ้า เกษตร",
+    "สิ่งปลูกสร้าง",
+    "พื้นที่เปิดโล่ง/หาดทราย",
+    "แหล่งน้ำ"
+   ]
+  },
+  "mc": {
+   "nsim": 5000,
+   "rank_prob": 100.0
+  },
+  "anchors": [
+   {
+    "id": 1,
+    "name": "ความหนาแน่นพื้นที่สีเขียว",
+    "raw": "% พื้นที่บกที่ NDVI ≥ 0.40",
+    "min": 0,
+    "max": 100,
+    "unit": "%"
+   },
+   {
+    "id": 2,
+    "name": "การเชื่อมโยงระบบนิเวศ",
+    "raw": "ดัชนี Probability of Connectivity",
+    "min": 0,
+    "max": 1,
+    "unit": ""
+   },
+   {
+    "id": 3,
+    "name": "การเข้าถึงพื้นที่น้ำ",
+    "raw": "% พื้นที่บกในรัศมี 800 ม.",
+    "min": 0,
+    "max": 100,
+    "unit": "%"
+   },
+   {
+    "id": 4,
+    "name": "องค์ประกอบไบโอฟิลิก",
+    "raw": "คะแนนแบบตรวจสอบ 14 รูปแบบ",
+    "min": 0,
+    "max": 28,
+    "unit": "คะแนน"
+   }
+  ],
+  "weights": [
+   0.25,
+   0.25,
+   0.25,
+   0.25
+  ],
+  "cert_rules": [
+   {
+    "level": "Platinum",
+    "min_score": 80,
+    "min_ind": 0.6,
+    "years": 3
+   },
+   {
+    "level": "Gold",
+    "min_score": 70,
+    "min_ind": 0.5,
+    "years": 3
+   },
+   {
+    "level": "Silver",
+    "min_score": 60,
+    "min_ind": 0.4,
+    "years": 2
+   }
+  ],
+  "sensitivity": {
+   "W1 equal weights (arithmetic)": {
+    "score": {
+     "North": 75.61,
+     "Central": 68.66,
+     "South": 80.12
+    },
+    "rank": {
+     "North": 2,
+     "Central": 3,
+     "South": 1
+    }
+   },
+   "W2 equal weights (geometric)": {
+    "score": {
+     "North": 72.72,
+     "Central": 64.94,
+     "South": 72.87
+    },
+    "rank": {
+     "North": 2,
+     "Central": 3,
+     "South": 1
+    }
+   },
+   "W3 ecological emphasis .35/.35/.15/.15": {
+    "score": {
+     "North": 71.93,
+     "Central": 65.43,
+     "South": 73.63
+    },
+    "rank": {
+     "North": 2,
+     "Central": 3,
+     "South": 1
+    }
+   },
+   "W4 experiential emphasis .15/.15/.35/.35": {
+    "score": {
+     "North": 79.29,
+     "Central": 71.88,
+     "South": 86.61
+    },
+    "rank": {
+     "North": 2,
+     "Central": 3,
+     "South": 1
+    }
+   },
+   "W5 excluding indicator 2": {
+    "score": {
+     "North": 86.26,
+     "Central": 79.57,
+     "South": 96.3
+    },
+    "rank": {
+     "North": 2,
+     "Central": 3,
+     "South": 1
+    }
+   },
+   "W6 excluding indicator 4": {
+    "score": {
+     "North": 73.43,
+     "Central": 68.92,
+     "South": 74.68
+    },
+    "rank": {
+     "North": 2,
+     "Central": 3,
+     "South": 1
+    }
+   }
+  },
+  "patterns": [
+   [
+    "1",
+    "การเชื่อมโยงด้วยสายตากับธรรมชาติ",
+    "Visual Connection with Nature"
+   ],
+   [
+    "2",
+    "การเชื่อมโยงโดยปราศจากการมองเห็น",
+    "Non-Visual Connection with Nature"
+   ],
+   [
+    "3",
+    "สิ่งกระตุ้นที่ไม่เป็นจังหวะ",
+    "Non-Rhythmic Sensory Stimuli"
+   ],
+   [
+    "4",
+    "ความแปรปรวนของอุณหภูมิและการไหลของอากาศ",
+    "Thermal & Airflow Variability"
+   ],
+   [
+    "5",
+    "การมีอยู่ของน้ำ",
+    "Presence of Water"
+   ],
+   [
+    "6",
+    "แสงสว่างแบบพลวัตและแบบกระจาย",
+    "Dynamic & Diffuse Light"
+   ],
+   [
+    "7",
+    "การเชื่อมต่อกับระบบธรรมชาติ",
+    "Connection with Natural Systems"
+   ],
+   [
+    "8",
+    "รูปทรงและรูปแบบชีวภาพ",
+    "Biomorphic Forms & Patterns"
+   ],
+   [
+    "9",
+    "การเชื่อมโยงวัสดุกับธรรมชาติ",
+    "Material Connection with Nature"
+   ],
+   [
+    "10",
+    "ความซับซ้อนอย่างมีระเบียบ",
+    "Complexity & Order"
+   ],
+   [
+    "11",
+    "มุมมองแบบคาดการณ์",
+    "Prospect"
+   ],
+   [
+    "12",
+    "พื้นที่หลบภัย",
+    "Refuge"
+   ],
+   [
+    "13",
+    "ความลึกลับ",
+    "Mystery"
+   ],
+   [
+    "14",
+    "ความเสี่ยงจำลอง",
+    "Risk / Peril"
+   ]
+  ],
+  "limitations": [
+   "ค่าดัชนีทุกค่าขึ้นกับนิยามหน่วยวิเคราะห์ การอ้างอิงต้องระบุกำกับเสมอ",
+   "ตัวชี้วัดที่ 1–3 คำนวณจากผลจำแนกชุดเดียวกัน ความคลาดเคลื่อนจึงไม่เป็นอิสระต่อกัน",
+   "MSPA เป็นการประมาณบน GEE มิใช่ GuidosToolbox ต้นฉบับ",
+   "PC ใช้ direct link probability มิใช่ maximum product path ของ Conefor",
+   "ระยะทางเป็นแบบยูคลิด มิใช่ระยะตามโครงข่ายทางเดินเท้า",
+   "ป้ายกำกับฝึกแบบจำลองมาจาก ESA WorldCover ซึ่งเป็นข้อมูลทุติยภูมิ"
+  ]
+ },
+ "zones": [
+  {
+   "id": "North",
+   "name_th": "โซนเหนือ",
+   "sub_th": "แหลมปะการัง – หาดคึกคัก",
+   "asset": "Eco-Adventure",
+   "bbox": [
+    98.21,
+    8.66,
+    98.28,
+    8.76
+   ],
+   "zone_area_km2": 14.88,
+   "land_area_km2": 13.46,
+   "norm": [
+    0.8916,
+    0.4366,
+    0.8747,
+    0.8214
+   ],
+   "raw": {
+    "green_pct": 89.16,
+    "pc": 0.4366,
+    "buffer800_pct": 87.47,
+    "checklist": 23
+   },
+   "beqi": 75.61,
+   "beqi_geom": 72.72,
+   "band": "B",
+   "cert": "Silver",
+   "cert_years": 2,
+   "mc": {
+    "mean": 74.31,
+    "lo": 73.53,
+    "hi": 75.07,
+    "sd": 0.4
+   },
+   "gap": {
+    "per": [
+     0.0704,
+     0,
+     0.088,
+     0.1429
+    ],
+    "sum": 0.3012,
+    "priority": 4.055,
+    "share": 31.7
+   },
+   "detail": {
+    "ndvi_mean": 0.669,
+    "ndvi_sd": 0.196,
+    "green_km2": 12.0,
+    "buffer400_pct": 51.6,
+    "buffer400_km2": 6.95,
+    "buffer800_km2": 11.77,
+    "eca_ha": 889.48,
+    "core_ha": 902.36,
+    "core_patches": 21,
+    "largest_patch_ha": 819.61,
+    "mspa": {
+     "core": 67.53,
+     "noncore": 14.8,
+     "islet": 1.01
+    },
+    "lulc": [
+     56.91,
+     28.55,
+     10.0,
+     4.54
+    ],
+    "buildings": 3166,
+    "bld_density": 235.18,
+    "access_points": 136,
+    "access_density": 10.1
+   },
+   "checklist": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    1,
+    2,
+    1,
+    2,
+    1,
+    2,
+    1,
+    1,
+    2
+   ]
+  },
+  {
+   "id": "Central",
+   "name_th": "โซนกลาง",
+   "sub_th": "หาดบางเนียง – หาดนางทอง",
+   "asset": "Commercial",
+   "bbox": [
+    98.22,
+    8.61,
+    98.28,
+    8.67
+   ],
+   "zone_area_km2": 7.76,
+   "land_area_km2": 7.52,
+   "norm": [
+    0.8527,
+    0.3591,
+    0.8559,
+    0.6786
+   ],
+   "raw": {
+    "green_pct": 85.27,
+    "pc": 0.3591,
+    "buffer800_pct": 85.59,
+    "checklist": 19
+   },
+   "beqi": 68.66,
+   "beqi_geom": 64.94,
+   "band": "C",
+   "cert": "ไม่ผ่านการรับรอง",
+   "cert_years": 0,
+   "mc": {
+    "mean": 68.17,
+    "lo": 67.35,
+    "hi": 68.92,
+    "sd": 0.4
+   },
+   "gap": {
+    "per": [
+     0.1093,
+     0.0775,
+     0.1068,
+     0.2857
+    ],
+    "sum": 0.5792,
+    "priority": 4.355,
+    "share": 34.0
+   },
+   "detail": {
+    "ndvi_mean": 0.69,
+    "ndvi_sd": 0.238,
+    "green_km2": 6.41,
+    "buffer400_pct": 46.65,
+    "buffer400_km2": 3.51,
+    "buffer800_km2": 6.44,
+    "eca_ha": 450.57,
+    "core_ha": 468.85,
+    "core_patches": 16,
+    "largest_patch_ha": 382.03,
+    "mspa": {
+     "core": 63.11,
+     "noncore": 12.13,
+     "islet": 1.11
+    },
+    "lulc": [
+     64.12,
+     14.16,
+     17.95,
+     3.77
+    ],
+    "buildings": 3011,
+    "bld_density": 400.47,
+    "access_points": 44,
+    "access_density": 5.85
+   },
+   "checklist": [
+    1,
+    2,
+    1,
+    1,
+    2,
+    2,
+    0,
+    2,
+    1,
+    2,
+    1,
+    2,
+    1,
+    1
+   ]
+  },
+  {
+   "id": "South",
+   "name_th": "โซนใต้",
+   "sub_th": "ชายฝั่งอุทยานแห่งชาติเขาหลัก–ลำรู่",
+   "asset": "Benchmark",
+   "bbox": [
+    98.21,
+    8.5,
+    98.31,
+    8.61
+   ],
+   "zone_area_km2": 39.38,
+   "land_area_km2": 36.31,
+   "norm": [
+    0.962,
+    0.3158,
+    0.9627,
+    0.9643
+   ],
+   "raw": {
+    "green_pct": 96.2,
+    "pc": 0.3158,
+    "buffer800_pct": 96.27,
+    "checklist": 27
+   },
+   "beqi": 80.12,
+   "beqi_geom": 72.87,
+   "band": "A",
+   "cert": "ไม่ผ่านการรับรอง",
+   "cert_years": 0,
+   "mc": {
+    "mean": 78.89,
+    "lo": 78.02,
+    "hi": 79.71,
+    "sd": 0.44
+   },
+   "gap": {
+    "per": [
+     0,
+     0.1208,
+     0,
+     0
+    ],
+    "sum": 0.1208,
+    "priority": 4.386,
+    "share": 34.3
+   },
+   "detail": {
+    "ndvi_mean": 0.79,
+    "ndvi_sd": 0.164,
+    "green_km2": 34.93,
+    "buffer400_pct": 71.15,
+    "buffer400_km2": 25.84,
+    "buffer800_km2": 34.96,
+    "eca_ha": 2040.57,
+    "core_ha": 2869.21,
+    "core_patches": 27,
+    "largest_patch_ha": 802.73,
+    "mspa": {
+     "core": 78.95,
+     "noncore": 13.15,
+     "islet": 0.12
+    },
+    "lulc": [
+     79.09,
+     14.45,
+     3.37,
+     3.09
+    ],
+    "buildings": 1884,
+    "bld_density": 51.88,
+    "access_points": 352,
+    "access_density": 9.69
+   },
+   "checklist": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    1,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+   ]
+  }
+ ]
+}
