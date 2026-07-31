@@ -9,6 +9,6 @@
       และของเว็บจริงบน GitHub Pages (เช่น https://forestry1019.github.io)
    3. แทนค่า clientId และ cloudProject ด้านล่างด้วยของจริง แล้ว commit */
 const GEE_CONFIG = {
-  clientId: 'YOUR_OAUTH_CLIENT_ID.apps.googleusercontent.com',
+  clientId: '1042126746111-8n2ohivjmuklhfo1qgki07o3qnla9eri.apps.googleusercontent.com',
   cloudProject: 'beqi-488814'
 };
