@@ -54,7 +54,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .warn{background:#FDF6E3;border:1px solid #EBD9A6;border-radius:10px;padding:14px 16px;font-size:14.5px;margin:16px 0}
 .pill{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;color:#fff}
 #map{height:430px;border-radius:12px;border:1px solid var(--line)}
-#surveyMap{height:380px;border-radius:12px;border:1px solid var(--line)}
+#pickerMap{height:380px;border-radius:12px;border:1px solid var(--line)}
 canvas{max-width:100%}
 .btn{background:var(--teal);color:#fff;border:0;padding:9px 16px;border-radius:8px;
   font:inherit;font-size:14px;font-weight:600;cursor:pointer}

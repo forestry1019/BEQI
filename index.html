@@ -22,10 +22,10 @@
 </header>
 
 <nav><div class="wrap">
-  <button class="on" data-t="overview">ภาพรวมพอร์ตโฟลิโอ</button>
+  <button class="on" data-t="picker">จิ้มพิกัดดูค่า BEQI</button>
+  <button data-t="overview">ภาพรวมพอร์ตโฟลิโอ</button>
   <button data-t="zone">รายละเอียดรายโซน</button>
   <button data-t="map">แผนที่</button>
-  <button data-t="survey">จุดสำรวจ (ทดลอง)</button>
   <button data-t="gap">ช่องว่างและลำดับความสำคัญ</button>
   <button data-t="cert">การรับรองคุณภาพ</button>
   <button data-t="quality">ความถูกต้องและความไม่แน่นอน</button>
@@ -34,7 +34,30 @@
 
 <main class="wrap">
 
-<section id="overview" class="on">
+<section id="picker" class="on">
+  <h2>จิ้มพิกัดเพื่อดูค่าดัชนี BEQI</h2>
+  <p class="lead">คลิกจุดภายในกรอบสีบนแผนที่ ซึ่งครอบคลุมพื้นที่วิจัย 3 โซนหลัก — <b style="color:#2A9D8F">โซนเหนือ
+    (แหลมปะการัง–หาดคึกคัก)</b>, <b style="color:#C89A2E">โซนกลาง (หาดบางเนียง–หาดนางทอง)</b> และ
+    <b style="color:#0B3D45">โซนใต้ (อุทยานแห่งชาติเขาหลัก–ลำรู่)</b> — เพื่อดูคะแนน BEQI รายตัวชี้วัด
+    และระดับการรับรองของโซนนั้นทันที</p>
+
+  <div class="warn">
+    ผลที่แสดงคือค่าดัชนี BEQI ที่ประมวลผลไว้ล่วงหน้าในระดับโซน (หน่วยวิเคราะห์ = แถบพื้นที่บกกว้าง 1 กิโลเมตร
+    จากแนวน้ำ ดูหัวข้อ "ระเบียบวิธีและข้อจำกัด") มิใช่ค่าเฉพาะพิกัดจุดที่คลิก การคลิกจุดใดก็ตามภายในกรอบเดียวกัน
+    จะให้ผลเดียวกันเสมอ
+  </div>
+
+  <div class="grid g2">
+    <div class="card"><h3 style="margin-top:0">แผนที่เลือกจุด</h3>
+      <div id="pickerMap"></div>
+      <p class="note" id="pickerMapNote">กำลังโหลดแผนที่…</p></div>
+    <div class="card"><h3 style="margin-top:0">ผลค่าดัชนี BEQI</h3>
+      <div id="pickerResult"><p class="note" style="margin-top:0">คลิกจุดบนแผนที่ด้านซ้ายเพื่อเริ่มต้น</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="overview">
   <h2>ภาพรวมพอร์ตโฟลิโอ</h2>
   <p class="lead">คลิกที่การ์ดของโซนเพื่อดูรายละเอียดรายตัวชี้วัด · คะแนนรวมแสดงคู่กับคะแนนรายตัวชี้วัดเสมอตามข้อกำหนด FR4</p>
   <div class="grid g3" id="cards"></div>
@@ -81,38 +104,6 @@
   <p class="lead">กรอบแสดงขอบเขตสำรวจของแต่ละโซน · หน่วยวิเคราะห์จริงคือแถบพื้นที่บกกว้าง 1 กิโลเมตรจากแนวน้ำภายในกรอบนี้</p>
   <div id="map"></div>
   <p class="note" id="mapnote"></p>
-</section>
-
-<section id="survey">
-  <h2>วิเคราะห์จุดสำรวจด้วย Google Earth Engine</h2>
-  <p class="lead">คลิกเลือก 1 จุดภายในขอบเขตพื้นที่ศึกษา (แหลมปะการัง–หาดคึกคัก, หาดบางเนียง–หาดนางทอง,
-    อุทยานแห่งชาติเขาหลัก–ลำรู่) เพื่อคำนวณดัชนี BEQI แบบสดด้วยพารามิเตอร์ชุดเดียวกับต้นแบบ</p>
-
-  <div class="warn">
-    <b>โหมดทดลอง:</b> แท็บนี้เรียกประมวลผลจริงบน Google Earth Engine ผ่านบัญชี Google ของผู้ใช้เอง
-    จึงต้องเชื่อมต่อบัญชีก่อนใช้งาน (ดูขั้นตอนตั้งค่าในไฟล์ README.md หัวข้อ “เปิดใช้งานแท็บจุดสำรวจ”)<br><br>
-    ผลจากจุดเดียวมีข้อจำกัดเชิงระเบียบวิธี 3 ข้อเทียบกับข้อมูลระดับโซนในต้นแบบ:
-    (1) ใช้วงกลมรัศมีรอบจุดที่เลือกแทนแถบชายฝั่ง 1 กม. เดิม
-    (2) ตัวชี้วัดที่ 2 ใช้ขนาดกลุ่มพิกเซลสีเขียวที่เชื่อมต่อกันเป็นตัวแทนดัชนี Probability of Connectivity
-    มิใช่การคำนวณกราฟ MSPA เต็มรูปแบบ
-    (3) ตัวชี้วัดที่ 4 มาจากการกรอกแบบตรวจสอบด้วยตนเอง มิใช่การสำรวจภาคสนามจริง
-  </div>
-
-  <div class="card" id="geeAuthBox"></div>
-
-  <div class="grid g2" style="margin-top:16px">
-    <div class="card"><h3 style="margin-top:0">แผนที่เลือกจุด</h3>
-      <div id="surveyMap"></div>
-      <p class="note" id="surveyMapNote">กำลังโหลดแผนที่…</p></div>
-    <div class="card"><h3 style="margin-top:0">ตัวชี้วัดที่ 4 องค์ประกอบเชิงไบโอฟิลิก — กรอกจากการสำรวจภาคสนาม</h3>
-      <p class="note" style="margin-top:0">ให้คะแนนแต่ละรูปแบบ 0 (ไม่พบ) – 2 (ชัดเจน) ตามแบบตรวจสอบ 14 รูปแบบ</p>
-      <div id="surveyChecklist"></div></div>
-  </div>
-
-  <div class="card" style="margin-top:16px" id="surveyResultCard" hidden>
-    <h3 style="margin-top:0">ผลการคำนวณ ณ จุดที่เลือก</h3>
-    <div id="surveyResult"></div>
-  </div>
 </section>
 
 <section id="gap">
@@ -182,8 +173,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="assets/js/app.js"></script>
-<script src="https://ajax.googleapis.com/ajax/libs/earthengine/0.1.365/earthengine-api.min.js"></script>
-<script src="assets/js/gee-config.js"></script>
-<script src="assets/js/survey.js"></script>
+<script src="assets/js/picker.js"></script>
 </body>
 </html>
