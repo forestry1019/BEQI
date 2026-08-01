@@ -1,76 +1,267 @@
-/* แท็บแรกของเว็บ "จิ้มพิกัดดูค่า BEQI" — ผู้ใช้คลิกจุดภายในกรอบ 3 โซนวิจัยหลัก
-   แล้วดึงผลค่า BEQI ที่ประมวลผลไว้ล่วงหน้าของโซนนั้นจาก data/beqi.json (zones[])
-   ไม่มีการคำนวณสดเพิ่มเติม — ทุกแท็บในเว็บนี้อ้างอิงชุดข้อมูลเดียวกัน จึงตัวเลขตรงกันเสมอ
-   ปุ่ม "ดูรายละเอียดเชิงลึก" เรียก SEL/cards()/zoneSel()/zoneDetail() ของ app.js โดยตรง
-   เพราะทั้งสองไฟล์เป็น classic script จึงใช้ scope ระดับหน้าเว็บร่วมกัน */
+/* แท็บแรกของเว็บ "วาดขอบเขตแปลงที่ดิน" — ผู้ใช้คลิกไล่ตามขอบเขตแปลงที่ดินจริงทีละจุด (waypoint)
+   เพื่อสร้างรูปหลายเหลี่ยม แล้วคำนวณตัวชี้วัดที่ 1–3 สดจากภาพดาวเทียมเฉพาะภายในรูปทรงนั้นผ่าน Google Earth Engine
+   (client-side, ไม่ต้องมี backend) โดยใช้พารามิเตอร์ชุดเดียวกับต้นแบบ
+   (meta.params ใน data/beqi.json)
+
+   เดิมแท็บนี้ใช้วงกลมรัศมีคงที่รอบจุดที่คลิก ซึ่งไม่สะท้อนรูปทรงแปลงที่ดินจริงที่มีทั้งแคบและกว้าง
+   จึงเปลี่ยนมาใช้รูปหลายเหลี่ยมที่ผู้ใช้วาดเองเป็นขอบเขตวิเคราะห์โดยตรง
+
+   ตัวชี้วัดที่ 4 (องค์ประกอบไบโอฟิลิก) ไม่ได้กรอกในหน้านี้ — มาจากระบบสำรวจภาคสนาม (backend) แยกต่างหาก
+   คะแนนที่แสดงจึงเป็นค่าเฉลี่ยจาก 3 ตัวชี้วัดที่มีข้อมูลเท่านั้น ยังไม่ใช่ค่า BEQI ฉบับสมบูรณ์
+   และยังสรุปสถานะการรับรองไม่ได้จนกว่าจะเชื่อมข้อมูลตัวชี้วัดที่ 4 เข้ามา */
 (function(){
-const COL=['#2A9D8F','#E9C46A','#0B3D45']; // เหนือ/กลาง/ใต้ — สีเดียวกับแท็บ "แผนที่"
-const IND_COL=['#2A9D8F','#0B3D45','#E9C46A','#E76F51'];
-const IND=['ที่ 1 พื้นที่สีเขียว','ที่ 2 การเชื่อมโยง','ที่ 3 การเข้าถึงน้ำ','ที่ 4 องค์ประกอบไบโอฟิลิก'];
-const BAND={A:'#1a7d32',B:'#2A9D8F',C:'#E9C46A',D:'#E76F51',E:'#B5322C'};
+const AOI=[ // กรอบอ้างอิง 3 โซนหลัก — แสดงเป็นบริบทบนแผนที่เท่านั้น ไม่ใช่ข้อจำกัดของรูปที่วาด
+  {name:'โซนเหนือ — แหลมปะการัง–หาดคึกคัก',bbox:[98.21,8.66,98.28,8.76],col:'#2A9D8F'},
+  {name:'โซนกลาง — หาดบางเนียง–หาดนางทอง',bbox:[98.22,8.61,98.28,8.67],col:'#E9C46A'},
+  {name:'โซนใต้ — อุทยานแห่งชาติเขาหลัก–ลำรู่',bbox:[98.21,8.50,98.31,8.61],col:'#0B3D45'}
+];
+const IND=['ที่ 1 พื้นที่สีเขียว','ที่ 2 การเชื่อมโยง (โดยประมาณ)','ที่ 3 การเข้าถึงน้ำ'];
+const BAR_COL=['#2A9D8F','#0B3D45','#E9C46A'];
 const el=id=>document.getElementById(id);
 const fx=(v,d=2)=>Number(v).toLocaleString('th-TH',{minimumFractionDigits:d,maximumFractionDigits:d});
+const clamp01=v=>Math.min(Math.max(v,0),1);
 
-let data=null, map=null, marker=null;
+let meta=null, map=null, ready=false;
+let verts=[], vmarkers=[], polyline=null, polygon=null, closed=false;
 
-fetch('data/beqi.json').then(r=>r.json()).then(d=>{data=d;boot()})
-  .catch(()=>{el('pickerMapNote').textContent='โหลดข้อมูลไม่สำเร็จ';});
+fetch('data/beqi.json').then(r=>r.json()).then(d=>{meta=d.meta; boot()})
+  .catch(()=>{el('pickerMapNote').textContent='โหลดพารามิเตอร์ไม่สำเร็จ';});
 
 function boot(){
   initMap();
+  initAuthUI();
+  wireButtons();
   document.querySelector('nav button[data-t="picker"]').addEventListener('click',()=>{
     setTimeout(()=>{if(map) map.invalidateSize();},80);
   });
-}
-
-function zoneAt(lat,lng){
-  return data.zones.find(z=>{const b=z.bbox; return lng>=b[0]&&lng<=b[2]&&lat>=b[1]&&lat<=b[3];});
 }
 
 function initMap(){
   map=L.map('pickerMap').setView([8.63,98.26],11);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     {maxZoom:18,attribution:'© OpenStreetMap contributors'}).addTo(map);
-  data.zones.forEach((z,i)=>{
-    const b=z.bbox;
-    L.rectangle([[b[1],b[0]],[b[3],b[2]]],{color:COL[i],weight:2,fillOpacity:.1})
-      .bindTooltip(z.name_th+' — '+z.sub_th).addTo(map);
+  AOI.forEach(z=>{const b=z.bbox;
+    L.rectangle([[b[1],b[0]],[b[3],b[2]]],
+      {color:z.col,weight:1.5,fillOpacity:.05,dashArray:'4,4'}).bindTooltip(z.name).addTo(map);
   });
   map.on('click',e=>{
-    const {lat,lng}=e.latlng, z=zoneAt(lat,lng);
-    if(marker) map.removeLayer(marker);
-    marker=L.marker([lat,lng]).addTo(map);
-    if(!z){
-      el('pickerMapNote').innerHTML='<b>จุดนี้อยู่นอกขอบเขต 3 โซนหลักของงานวิจัย</b> กรุณาคลิกภายในกรอบสีบนแผนที่';
-      el('pickerResult').innerHTML='<p class="note" style="margin-top:0">ยังไม่มีผลลัพธ์ — คลิกภายในกรอบสีเพื่อดูค่าดัชนี BEQI</p>';
-      return;
-    }
-    const i=data.zones.indexOf(z);
-    el('pickerMapNote').innerHTML='พิกัดที่เลือก '+fx(lat,5)+', '+fx(lng,5)+
-      ' — อยู่ใน <b style="color:'+COL[i]+'">'+z.name_th+'</b>';
-    renderResult(z);
+    if(closed) return;
+    addVertex(e.latlng);
   });
-  el('pickerMapNote').textContent='คลิกภายในกรอบสีเพื่อดูค่าดัชนี BEQI ของโซนนั้น';
+  statusNote();
 }
 
-function renderResult(z){
-  el('pickerResult').innerHTML=`
-    <div class="zh">
-      <div><p class="zn">${z.name_th}</p><p class="zs">${z.sub_th}</p></div>
-      <span class="badge">${z.asset}</span>
-    </div>
-    <p class="score">${fx(z.beqi)}<small> / 100 · ระดับ ${z.band}</small></p>
-    <p class="ci">ช่วงความเชื่อมั่น 95% [${fx(z.mc.lo)}, ${fx(z.mc.hi)}] · พื้นที่บก ${fx(z.land_area_km2)} ตร.กม.</p>
-    <div class="bars">${z.norm.map((v,i)=>`
-      <div class="bar"><div class="bl"><span>${IND[i]}</span><span>${fx(v,3)}</span></div>
-      <div class="bt"><div class="bf" style="width:${v*100}%;background:${IND_COL[i]}"></div></div></div>`).join('')}
-    </div>
-    <p class="ci" style="margin:12px 0 0">สถานะการรับรอง:
-      <b style="color:${z.cert_years?BAND[z.band]:'#B5322C'}">${z.cert}${z.cert_years?' ('+z.cert_years+' ปี)':''}</b></p>
-    <button class="btn" id="pickerDeepBtn" style="margin-top:10px">ดูรายละเอียดเชิงลึกของโซนนี้ →</button>`;
-  el('pickerDeepBtn').onclick=()=>{
-    SEL=z.id; cards(); zoneSel(); zoneDetail();
-    document.querySelector('nav button[data-t="zone"]').click();
+function addVertex(ll){
+  verts.push(ll);
+  const m=L.circleMarker(ll,{radius:8,color:'#0B3D45',weight:2,fillColor:'#fff',fillOpacity:1}).addTo(map);
+  // คลิกจุดแรกซ้ำเพื่อปิดรูปได้ทันที (พฤติกรรมมาตรฐานของเครื่องมือวาดรูปหลายเหลี่ยม)
+  if(verts.length===1) m.on('click',()=>{ if(!closed) closePolygon(); });
+  vmarkers.push(m);
+  if(polyline) map.removeLayer(polyline);
+  polyline=L.polyline(verts,{color:'#0B3D45',weight:2,dashArray:'5,5'}).addTo(map);
+  refreshButtons();
+  statusNote();
+}
+
+function undoVertex(){
+  if(closed||!verts.length) return;
+  verts.pop();
+  map.removeLayer(vmarkers.pop());
+  if(polyline){map.removeLayer(polyline);polyline=null;}
+  if(verts.length) polyline=L.polyline(verts,{color:'#0B3D45',weight:2,dashArray:'5,5'}).addTo(map);
+  refreshButtons();
+  statusNote();
+}
+
+function closePolygon(){
+  if(closed||verts.length<3) return;
+  closed=true;
+  if(polyline){map.removeLayer(polyline);polyline=null;}
+  polygon=L.polygon(verts,{color:'#0B3D45',weight:2,fillColor:'#2A9D8F',fillOpacity:.18}).addTo(map);
+  refreshButtons();
+  statusNote();
+}
+
+function clearAll(){
+  vmarkers.forEach(m=>map.removeLayer(m)); vmarkers=[];
+  if(polyline){map.removeLayer(polyline);polyline=null;}
+  if(polygon){map.removeLayer(polygon);polygon=null;}
+  verts=[]; closed=false;
+  el('pickerResultCard').hidden=true;
+  refreshButtons();
+  statusNote();
+}
+
+function wireButtons(){
+  el('undoBtn').onclick=undoVertex;
+  el('closeBtn').onclick=closePolygon;
+  el('clearBtn').onclick=clearAll;
+  el('runBtn').onclick=runAnalysis;
+  refreshButtons();
+}
+function refreshButtons(){
+  el('undoBtn').disabled=closed||!verts.length;
+  el('closeBtn').disabled=closed||verts.length<3;
+  el('runBtn').disabled=!closed||!ready;
+}
+function statusNote(){
+  if(closed){
+    el('pickerMapNote').innerHTML='ปิดรูปแล้ว ('+verts.length+' จุดขอบเขต) — กด "คำนวณ BEQI" ด้านล่าง'+
+      (ready?'':' <span class="note" style="margin:0">(ต้องเชื่อมต่อ Earth Engine ก่อน)</span>');
+  }else if(verts.length){
+    el('pickerMapNote').textContent='วางแล้ว '+verts.length+' จุด — คลิกต่อเพื่อเพิ่มจุด, คลิกจุดแรกซ้ำ หรือกด "ปิดรูปหลายเหลี่ยม" เมื่อครบ (อย่างน้อย 3 จุด)';
+  }else{
+    el('pickerMapNote').textContent='คลิกไล่ตามขอบเขตแปลงที่ดินทีละจุด (waypoint) เพื่อเริ่มวาดรูปหลายเหลี่ยม';
+  }
+}
+
+function initAuthUI(){
+  const box=el('geeAuthBox');
+  if(typeof ee==='undefined'){
+    box.innerHTML='<b>โหลดไลบรารี Earth Engine ไม่สำเร็จ</b> ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วรีเฟรชหน้านี้';
+    return;
+  }
+  if(!GEE_CONFIG||!GEE_CONFIG.clientId||GEE_CONFIG.clientId.indexOf('YOUR_')===0){
+    box.innerHTML='<b>ยังไม่ได้ตั้งค่า Google Earth Engine</b><br>'+
+      'แก้ไขไฟล์ <code>assets/js/gee-config.js</code> ใส่ OAuth Client ID และ Cloud Project ID ก่อนใช้งานแท็บนี้ '+
+      '(ดูขั้นตอนใน README.md)';
+    return;
+  }
+  if(location.protocol==='file:'){
+    box.innerHTML='<b>เปิดไฟล์โดยตรงอยู่ (file://) — เชื่อมต่อ Earth Engine ไม่ได้</b><br>'+
+      'OAuth Client ID อนุญาตเฉพาะโดเมนที่ลงทะเบียนไว้ล่วงหน้า (เช่น http://localhost:8000 หรือ '+
+      'https://forestry1019.github.io) การเปิดไฟล์ตรง ๆ ผ่าน file:// จะเชื่อมต่อไม่ได้เสมอ '+
+      'ให้รันเซิร์ฟเวอร์ในเครื่องก่อนด้วยคำสั่ง <code>python3 -m http.server 8000</code> แล้วเปิด '+
+      'http://localhost:8000 (ดูหัวข้อ "การใช้งาน" ใน README.md)';
+    return;
+  }
+  // ขั้นที่ 1: เรียก authenticateViaOauth เพื่อ "ลงทะเบียน" client ID ไว้กับไลบรารี (จำเป็นสำหรับ
+  // authenticateViaPopup ในขั้นที่ 2) และลองตรวจสอบเซสชันเดิมแบบเงียบไปพร้อมกัน
+  // ข้อควรระวัง: การตรวจสอบแบบเงียบใช้ iframe ข้ามโดเมน ซึ่งเบราว์เซอร์ที่บล็อก third-party cookies
+  // อาจทำให้ค้างเงียบตลอดไปไม่เรียก callback ฝั่งใดเลย (พบปัญหานี้จริงระหว่างทดสอบ)
+  // จึงตั้งเวลาสำรองไว้ — ถ้าผ่านไป 4 วินาทีแล้วยังไม่มี callback ใดทำงาน ให้บังคับแสดงปุ่มเชื่อมต่อไปเลย
+  let authSettled=false;
+  const fallback=setTimeout(()=>{ if(!authSettled) showLoginButton(); },4000);
+  const onImmediateFailed=()=>{ authSettled=true; clearTimeout(fallback); showLoginButton(); };
+  const onImmediateAuthed=()=>{ authSettled=true; clearTimeout(fallback); onAuthed(); };
+  box.innerHTML='<span class="note" id="geeStatus" style="margin:0">กำลังตรวจสอบสถานะการเชื่อมต่อ…</span>';
+  ee.data.authenticateViaOauth(GEE_CONFIG.clientId, onImmediateAuthed, ()=>{},
+    ['https://www.googleapis.com/auth/earthengine.readonly'], onImmediateFailed, true);
+}
+function showLoginButton(){
+  const box=el('geeAuthBox');
+  box.innerHTML='<button id="geeLogin" class="btn">เชื่อมต่อบัญชี Google Earth Engine</button> '+
+    '<span class="note" id="geeStatus" style="margin:0 0 0 10px">ยังไม่ได้เชื่อมต่อ</span>';
+  el('geeLogin').onclick=()=>{
+    el('geeStatus').textContent='กำลังเปิดหน้าต่างล็อกอินของ Google… (หากไม่มีป๊อปอัปเด้งขึ้นมา '+
+      'ให้ตรวจสอบว่าเบราว์เซอร์บล็อกป๊อปอัปของหน้านี้อยู่หรือไม่ แล้วอนุญาตแล้วลองใหม่)';
+    // ขั้นที่ 2: เปิดป๊อปอัปให้ผู้ใช้ล็อกอินจริง (ต้องเรียกจาก authenticateViaPopup ไม่ใช่ authenticateViaOauth
+    // ซึ่งใช้สำหรับตรวจสอบแบบเงียบเท่านั้นและไม่เปิดป๊อปอัปให้)
+    try{
+      ee.data.authenticateViaPopup(onAuthed, onAuthErr);
+    }catch(e){
+      onAuthErr(e);
+    }
   };
+}
+function onAuthed(){
+  ee.initialize(null,null,()=>{
+    ready=true;
+    el('geeStatus').textContent='เชื่อมต่อสำเร็จ พร้อมคำนวณ';
+    refreshButtons();
+    statusNote();
+  }, onAuthErr, null, GEE_CONFIG.cloudProject);
+}
+function onAuthErr(e){
+  console.error('BEQI picker: Earth Engine auth/init error',e);
+  const msg=(e&&e.message)?e.message:(typeof e==='string'?e:JSON.stringify(e));
+  el('geeStatus').textContent='เชื่อมต่อไม่สำเร็จ: '+msg+' (ดูรายละเอียดเพิ่มเติมใน Console — กด F12)';
+}
+
+// ดึงค่าจาก ee.Dictionary แบบปลอดภัย — ถ้าไม่มีคีย์นั้น (เช่น แปลงที่วาดไม่มีพิกเซลสีเขียว/น้ำเลย
+// ในแบนด์นั้น ทำให้ reduceRegion ไม่คืนคีย์นั้นมา) ให้ใช้ 0 แทน โดยไม่พึ่ง .get(key, default)
+// ซึ่งเวอร์ชันไลบรารีบางรุ่นอาจไม่รองรับอาร์กิวเมนต์ที่สอง
+function safeGet(dict,key){
+  return ee.Algorithms.If(dict.contains(key), dict.get(key), 0);
+}
+
+function runAnalysis(){
+  if(!closed||!ready) return;
+  el('pickerResultCard').hidden=false;
+  el('pickerResult').innerHTML='<p>กำลังประมวลผลบน Google Earth Engine…</p>';
+  let done=false;
+  const timer=setTimeout(()=>{
+    if(done) return;
+    el('pickerResult').innerHTML='<div class="warn">การประมวลผลใช้เวลานานผิดปกติ (เกิน 30 วินาที) '+
+      'อาจเกิดจากแปลงที่วาดมีขนาดใหญ่เกินไป การเชื่อมต่ออินเทอร์เน็ตช้า หรือบัญชี/โปรเจกต์ Earth Engine '+
+      'ยังไม่ได้รับสิทธิ์ใช้งาน — ลองวาดแปลงให้เล็กลง ตรวจสอบ Console ของเบราว์เซอร์ (F12) '+
+      'เพื่อดูข้อความ error โดยตรง หรือรีเฟรชหน้าแล้วเชื่อมต่อบัญชีใหม่</div>';
+  },30000);
+
+  try{
+    const p=meta.params;
+    const ring=verts.map(v=>[v.lng,v.lat]);
+    ring.push(ring[0]);
+    const poly=ee.Geometry.Polygon([ring]);
+
+    const s2=ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+      .filterDate('2024-01-14','2025-12-24').filterBounds(poly)
+      .filter(ee.Filter.lte('CLOUDY_PIXEL_PERCENTAGE',p.cloud_filter_pct)).median();
+    const ndvi=s2.normalizedDifference(['B8','B4']).rename('ndvi');
+    const wc=ee.ImageCollection('ESA/WorldCover/v200').first().select('Map');
+    const land=wc.neq(80).rename('land');
+    const water=wc.eq(80).rename('water');
+    const greenLand=ndvi.gte(p.ndvi_threshold).and(land).rename('green');
+
+    const ind1=greenLand.updateMask(land).reduceRegion(
+      {reducer:ee.Reducer.mean(),geometry:poly,scale:p.scale_m,maxPixels:1e9,bestEffort:true});
+
+    const patch=greenLand.selfMask().connectedPixelCount({maxSize:256,eightConnected:true});
+    const ind2=patch.reduceRegion(
+      {reducer:ee.Reducer.mean(),geometry:poly,scale:p.scale_m,maxPixels:1e9,bestEffort:true});
+
+    const dist=water.fastDistanceTransform(256).sqrt().multiply(p.scale_m);
+    const within=dist.lte(800).rename('w800');
+    const ind3=within.updateMask(land).reduceRegion(
+      {reducer:ee.Reducer.mean(),geometry:poly,scale:p.scale_m,maxPixels:1e9,bestEffort:true});
+
+    const combined=ee.Dictionary({
+      g:safeGet(ind1,'green'), p:safeGet(ind2,'green'), w:safeGet(ind3,'w800'), area:poly.area(1)
+    });
+    combined.evaluate((r,err)=>{
+      done=true; clearTimeout(timer);
+      if(err){
+        console.error('BEQI picker: Earth Engine evaluate error',err);
+        el('pickerResult').innerHTML='<div class="warn">คำนวณไม่สำเร็จ: '+err+'</div>';
+        return;
+      }
+      renderResult(r);
+    });
+  }catch(e){
+    done=true; clearTimeout(timer);
+    console.error('BEQI picker: error building Earth Engine request',e);
+    el('pickerResult').innerHTML='<div class="warn">คำนวณไม่สำเร็จ (เกิดข้อผิดพลาดก่อนส่งคำขอ): '+
+      (e&&e.message?e.message:e)+' — ดูรายละเอียดเพิ่มเติมใน Console (F12)</div>';
+  }
+}
+
+function renderResult(r){
+  const green=(r.g||0)*100, pc=clamp01((r.p||0)/256), w800=(r.w||0)*100;
+  const areaKm2=(r.area||0)/1e6;
+  const norm=[clamp01(green/100),pc,clamp01(w800/100)];
+  const partial=norm.reduce((a,b)=>a+b,0)/norm.length*100;
+  el('pickerResult').innerHTML=`
+    <p class="score">${fx(partial)}<small> / 100 · เฉลี่ยจาก 3 ตัวชี้วัดที่มีข้อมูล (ยังไม่รวมตัวชี้วัดที่ 4)</small></p>
+    <div class="bars">${norm.map((v,i)=>`
+      <div class="bar"><div class="bl"><span>${IND[i]}</span><span>${fx(v,3)}</span></div>
+      <div class="bt"><div class="bf" style="width:${v*100}%;background:${BAR_COL[i]}"></div></div></div>`).join('')}
+    </div>
+    <p class="ci" style="margin:12px 0 0">สถานะการรับรอง: <b style="color:#5C7A80">รอข้อมูลตัวชี้วัดที่ 4 จากระบบสำรวจภาคสนาม (backend)</b></p>
+    <div class="kv"><span>ค่าดิบ ความหนาแน่นพื้นที่สีเขียว (NDVI ≥ ${meta.params.ndvi_threshold})</span><b>${fx(green)} %</b></div>
+    <div class="kv"><span>ค่าดิบ ตัวแทนดัชนีการเชื่อมโยง (proxy)</span><b>${fx(pc,4)}</b></div>
+    <div class="kv"><span>ค่าดิบ พื้นที่ในรัศมี 800 ม. จากแหล่งน้ำ</span><b>${fx(w800)} %</b></div>
+    <div class="kv"><span>พื้นที่แปลงที่วาด</span><b>${fx(areaKm2,4)} ตร.กม. (${fx(r.area||0,0)} ตร.ม.)</b></div>
+    <div class="kv"><span>จำนวนจุดขอบเขต</span><b>${verts.length} จุด</b></div>
+    <div class="kv"><span>รุ่นพารามิเตอร์</span><b>${meta.param_version}</b></div>`;
 }
 })();
