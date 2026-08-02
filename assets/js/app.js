@@ -71,7 +71,6 @@ function cards(){
         <div class="bar"><div class="bl"><span>${IND[i]}</span><span>${fx(v,3)}</span></div>
         <div class="bt"><div class="bf" style="width:${v*100}%;background:${C.ind[i]}"></div></div></div>`).join('')}
       </div>
-      <p class="ci" style="margin:12px 0 0">สถานะการรับรอง: <b style="color:${z.cert_years?C.band[z.band]:'#B5322C'}">${z.cert}</b></p>
     </div>`).join('');
   el('fr4note').innerHTML='<b>ข้อกำหนด FR4:</b> ระบบไม่แสดงคะแนนรวมโดยลำพัง เนื่องจากตัวชี้วัดที่ 2 '+
     'ให้ลำดับสวนทางกับตัวชี้วัดอื่นในทุกโซน การอ่านเฉพาะคะแนนรวมจะปิดบังจุดอ่อนเชิงโครงสร้างนี้';
@@ -147,19 +146,6 @@ function certLevels(){
     </div>`).join('');
 }
 function certView(){
-  el('certt').innerHTML='<thead><tr><th>โซน</th><th class="n">คะแนนรวม</th><th class="n">ตัวชี้วัดต่ำสุด</th>'+
-    '<th>ระดับตามคะแนน</th><th>ผลหลังใช้เงื่อนไขขั้นต่ำ</th></tr></thead><tbody>'+
-    D.zones.map(z=>{const mn=Math.min(...z.norm);
-      const byScore=D.meta.cert_rules.find(r=>z.beqi>=r.min_score);
-      return `<tr><td>${z.name_th}</td><td class="n">${fx(z.beqi)}</td><td class="n">${fx(mn,4)}</td>
-        <td>${byScore?byScore.level:'ไม่ผ่าน'}</td>
-        <td><b style="color:${z.cert_years?C.band[z.band]:'#B5322C'}">${z.cert}</b></td></tr>`}).join('')+'</tbody>';
-  el('certnote').innerHTML='<b>ผลของเงื่อนไขขั้นต่ำรายตัวชี้วัด:</b> เมื่อใช้เกณฑ์นี้กับข้อมูลจริง '+
-    'มีเพียงโซนเหนือที่ผ่านการรับรอง (ระดับ Silver) ส่วนโซนกลางและโซนใต้ไม่ผ่าน '+
-    'แม้โซนใต้จะมีคะแนนรวมสูงที่สุด 80.12 เนื่องจากตัวชี้วัดที่ 2 อยู่ที่ 0.3158 ซึ่งต่ำกว่าเกณฑ์ขั้นต่ำทุกระดับ '+
-    '<br><br><b>ข้อควรพิจารณา:</b> ค่าตัวชี้วัดที่ 2 ที่ต่ำในทุกโซนส่วนหนึ่งเป็นผลจากการที่หน่วยวิเคราะห์ '+
-    'เป็นแถบชายฝั่งกว้าง 1 กิโลเมตร ซึ่งตัดผืนพืชพรรณที่ทอดลึกเข้าแผ่นดินออก มิใช่สภาพนิเวศที่แท้จริงทั้งหมด '+
-    'เกณฑ์ขั้นต่ำของตัวชี้วัดนี้จึงควรผ่านการทบทวนด้วยข้อมูลจากพื้นที่ที่หลากหลายกว่านี้ก่อนนำไปใช้ตัดสินจริง';
   el('sim').innerHTML=IND.map((n,i)=>`
     <div class="bar"><div class="bl"><span>${n}</span><span id="sv${i}">0.500</span></div>
     <input type="range" min="0" max="1" step="0.001" value="0.5" data-i="${i}" class="simr"></div>`).join('');
