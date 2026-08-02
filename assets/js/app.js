@@ -15,7 +15,7 @@ Chart.defaults.font.family='Sarabun, sans-serif';
 Chart.defaults.font.size=12.5;
 Chart.defaults.color=C.mute;
 
-fetch('data/beqi.json?v=12').then(r=>r.json()).then(d=>{D=d;boot()})
+fetch('data/beqi.json?v=13').then(r=>r.json()).then(d=>{D=d;boot()})
   .catch(e=>document.querySelector('main').innerHTML=
     '<div class="warn">โหลดข้อมูลไม่สำเร็จ — หากเปิดไฟล์โดยตรงจากเครื่อง เบราว์เซอร์จะบล็อกการอ่านไฟล์ JSON '+
     'ให้รันเซิร์ฟเวอร์ในเครื่องด้วยคำสั่ง <code>python3 -m http.server</code> แล้วเปิด http://localhost:8000</div>');
