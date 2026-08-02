@@ -1,18 +1,18 @@
 /* แท็บแรกของเว็บ "วาดขอบเขตแปลงที่ดิน" — ผู้ใช้คลิกไล่ตามขอบเขตแปลงที่ดินจริงทีละจุด (waypoint)
-   เพื่อสร้างรูปหลายเหลี่ยม แล้วคำนวณตัวชี้วัดที่ 1–3 สดจากภาพดาวเทียมเฉพาะภายในรูปทรงนั้นผ่าน Google Earth Engine
+   เพื่อสร้างรูปหลายเหลี่ยม แล้วคำนวณตัวชี้วัดทั้ง 4 สดจากภาพดาวเทียมเฉพาะภายในรูปทรงนั้นผ่าน Google Earth Engine
    (client-side, ไม่ต้องมี backend) โดยใช้พารามิเตอร์ชุดเดียวกับต้นแบบ
    (meta.params ใน data/beqi.json)
 
    เดิมแท็บนี้ใช้วงกลมรัศมีคงที่รอบจุดที่คลิก ซึ่งไม่สะท้อนรูปทรงแปลงที่ดินจริงที่มีทั้งแคบและกว้าง
    จึงเปลี่ยนมาใช้รูปหลายเหลี่ยมที่ผู้ใช้วาดเองเป็นขอบเขตวิเคราะห์โดยตรง
 
-   ตัวชี้วัดที่ 4 (องค์ประกอบไบโอฟิลิก) ไม่ได้กรอกในหน้านี้ — มาจากระบบสำรวจภาคสนาม (backend) แยกต่างหาก
-   คะแนนที่แสดงจึงเป็นค่าเฉลี่ยจาก 3 ตัวชี้วัดที่มีข้อมูลเท่านั้น ยังไม่ใช่ค่า BEQI ฉบับสมบูรณ์
-   และยังสรุปสถานะการรับรองไม่ได้จนกว่าจะเชื่อมข้อมูลตัวชี้วัดที่ 4 เข้ามา */
+   ตัวชี้วัดที่ 4 (องค์ประกอบไบโอฟิลิก) ตามระเบียบวิธีต้นแบบต้องมาจากแบบตรวจสอบภาคสนาม 14 รูปแบบที่คนลงพื้นที่จริงกรอก
+   (ไม่ใช่ลูกค้า) ซึ่งยังไม่มีระบบเบื้องหลังรองรับในต้นแบบนี้ จึงประมาณค่าแทนจากข้อมูลดาวเทียมที่คำนวณอยู่แล้วในหน้านี้
+   (สัดส่วนพื้นที่สีเขียว + สัดส่วนพื้นที่ใกล้แหล่งน้ำ + ความหลากหลายเชิงพื้นผิวของพืชพรรณ) ไม่ใช่ผลการสำรวจภาคสนามจริง */
 (function(){
 const AOI_COL=['#2A9D8F','#E9C46A','#0B3D45']; // สีอ้างอิง 3 โซนหลัก — แสดงเป็นบริบทบนแผนที่เท่านั้น ไม่ใช่ข้อจำกัดของรูปที่วาด
-const IND=['ที่ 1 พื้นที่สีเขียว','ที่ 2 การเชื่อมโยง (โดยประมาณ)','ที่ 3 การเข้าถึงน้ำ'];
-const BAR_COL=['#2A9D8F','#0B3D45','#E9C46A'];
+const IND=['ที่ 1 พื้นที่สีเขียว','ที่ 2 การเชื่อมโยง (โดยประมาณ)','ที่ 3 การเข้าถึงน้ำ','ที่ 4 องค์ประกอบไบโอฟิลิก (ประมาณจากดาวเทียม)'];
+const BAR_COL=['#2A9D8F','#0B3D45','#E9C46A','#E76F51'];
 const el=id=>document.getElementById(id);
 const fx=(v,d=2)=>Number(v).toLocaleString('th-TH',{minimumFractionDigits:d,maximumFractionDigits:d});
 const clamp01=v=>Math.min(Math.max(v,0),1);
@@ -20,7 +20,7 @@ const clamp01=v=>Math.min(Math.max(v,0),1);
 let meta=null, zones=null, map=null, ready=false;
 let verts=[], vmarkers=[], polyline=null, polygon=null, closed=false;
 
-fetch('data/beqi.json?v=14').then(r=>r.json()).then(d=>{meta=d.meta; zones=d.zones; boot()})
+fetch('data/beqi.json?v=15').then(r=>r.json()).then(d=>{meta=d.meta; zones=d.zones; boot()})
   .catch(()=>{el('pickerMapNote').textContent='โหลดพารามิเตอร์ไม่สำเร็จ';});
 
 function boot(){
@@ -223,8 +223,14 @@ function runAnalysis(){
     const ind3=within.updateMask(land).reduceRegion(
       {reducer:ee.Reducer.mean(),geometry:poly,scale:p.scale_m,maxPixels:1e9,bestEffort:true});
 
+    // ตัวชี้วัดที่ 4 (ประมาณการ): ระเบียบวิธีต้นแบบต้องใช้แบบตรวจสอบภาคสนาม 14 รูปแบบซึ่งยังไม่มีระบบรองรับ
+    // จึงใช้ค่าเบี่ยงเบนมาตรฐานของ NDVI แทนความหลากหลายเชิงพื้นผิวของพืชพรรณ (proxy ของรูปแบบเชิงซ้อน/ธรรมชาติ)
+    const ind4sd=ndvi.updateMask(land).reduceRegion(
+      {reducer:ee.Reducer.stdDev(),geometry:poly,scale:p.scale_m,maxPixels:1e9,bestEffort:true});
+
     const combined=ee.Dictionary({
-      g:safeGet(ind1,'green'), p:safeGet(ind2,'green'), w:safeGet(ind3,'w800'), area:poly.area(1)
+      g:safeGet(ind1,'green'), p:safeGet(ind2,'green'), w:safeGet(ind3,'w800'),
+      sd:safeGet(ind4sd,'ndvi'), area:poly.area(1)
     });
     combined.evaluate((r,err)=>{
       done=true; clearTimeout(timer);
@@ -243,21 +249,31 @@ function runAnalysis(){
   }
 }
 
+function certLevel(score,norm){
+  const mn=Math.min(...norm);
+  for(const rule of meta.cert_rules) if(score>=rule.min_score&&mn>=rule.min_ind) return rule.level;
+  return 'ไม่ผ่านการรับรอง';
+}
 function renderResult(r){
   const green=(r.g||0)*100, pc=clamp01((r.p||0)/256), w800=(r.w||0)*100;
+  const complexity=clamp01((r.sd||0)/0.25);
+  const ind4=clamp01(0.4*clamp01(green/100)+0.3*clamp01(w800/100)+0.3*complexity);
   const areaKm2=(r.area||0)/1e6;
-  const norm=[clamp01(green/100),pc,clamp01(w800/100)];
-  const partial=norm.reduce((a,b)=>a+b,0)/norm.length*100;
+  const norm=[clamp01(green/100),pc,clamp01(w800/100),ind4];
+  const overall=norm.reduce((a,b)=>a+b,0)/norm.length*100;
+  const level=certLevel(overall,norm);
   el('pickerResult').innerHTML=`
-    <p class="score">${fx(partial)}<small> / 100 · เฉลี่ยจาก 3 ตัวชี้วัดที่มีข้อมูล (ยังไม่รวมตัวชี้วัดที่ 4)</small></p>
+    <p class="score">${fx(overall)}<small> / 100 · คะแนน BEQI โดยประมาณ (ตัวชี้วัดที่ 4 เป็นค่าประมาณจากดาวเทียม)</small></p>
     <div class="bars">${norm.map((v,i)=>`
       <div class="bar"><div class="bl"><span>${IND[i]}</span><span>${fx(v,3)}</span></div>
       <div class="bt"><div class="bf" style="width:${v*100}%;background:${BAR_COL[i]}"></div></div></div>`).join('')}
     </div>
-    <p class="ci" style="margin:12px 0 0">สถานะการรับรอง: <b style="color:#5C7A80">รอข้อมูลตัวชี้วัดที่ 4 จากระบบสำรวจภาคสนาม (backend)</b></p>
+    <p class="ci" style="margin:12px 0 0">ระดับโดยประมาณ: <b style="color:#5C7A80">${level}</b>
+      <span class="note" style="margin:0">(ต้องยืนยันด้วยแบบตรวจสอบภาคสนาม 14 รูปแบบก่อนออกใบรับรองจริง)</span></p>
     <div class="kv"><span>ค่าดิบ ความหนาแน่นพื้นที่สีเขียว (NDVI ≥ ${meta.params.ndvi_threshold})</span><b>${fx(green)} %</b></div>
     <div class="kv"><span>ค่าดิบ ตัวแทนดัชนีการเชื่อมโยง (proxy)</span><b>${fx(pc,4)}</b></div>
     <div class="kv"><span>ค่าดิบ พื้นที่ในรัศมี 800 ม. จากแหล่งน้ำ</span><b>${fx(w800)} %</b></div>
+    <div class="kv"><span>ค่าดิบ ตัวแทนตัวชี้วัดที่ 4 (พื้นที่สีเขียว + พื้นที่ใกล้น้ำ + ความหลากหลายพื้นผิวพืชพรรณ)</span><b>${fx(ind4,4)}</b></div>
     <div class="kv"><span>พื้นที่แปลงที่วาด</span><b>${fx(areaKm2,4)} ตร.กม. (${fx(r.area||0,0)} ตร.ม.)</b></div>
     <div class="kv"><span>จำนวนจุดขอบเขต</span><b>${verts.length} จุด</b></div>
     <div class="kv"><span>รุ่นพารามิเตอร์</span><b>${meta.param_version}</b></div>`;
