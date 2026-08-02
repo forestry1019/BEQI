@@ -20,7 +20,7 @@ const clamp01=v=>Math.min(Math.max(v,0),1);
 let meta=null, zones=null, map=null, ready=false;
 let verts=[], vmarkers=[], polyline=null, polygon=null, closed=false;
 
-fetch('data/beqi.json?v=11').then(r=>r.json()).then(d=>{meta=d.meta; zones=d.zones; boot()})
+fetch('data/beqi.json?v=12').then(r=>r.json()).then(d=>{meta=d.meta; zones=d.zones; boot()})
   .catch(()=>{el('pickerMapNote').textContent='โหลดพารามิเตอร์ไม่สำเร็จ';});
 
 function boot(){
