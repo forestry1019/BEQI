@@ -124,13 +124,16 @@ data/beqi.json          ชุดข้อมูลผลการวิเค�
 - PC ใช้ direct link probability มิใช่ maximum product path ของ Conefor
 - ระยะทางเป็นแบบยูคลิด มิใช่ระยะตามโครงข่ายทางเดินเท้า
 - ป้ายกำกับฝึกแบบจำลองมาจาก ESA WorldCover ซึ่งเป็นข้อมูลทุติยภูมิ
+- รูปหลายเหลี่ยมขอบเขต 3 โซน (`zones[].boundary` ใน `data/beqi.json`) สร้างจากแนวชายฝั่งจริงของ
+  OpenStreetMap (`natural=coastline`) แล้วเลื่อนเข้าฝั่งประมาณ 1 กม. ตามนิยามหน่วยวิเคราะห์ — เป็นการประมาณ
+  แบบง่าย (offset เชิงเส้นตรงยาว-แคบ) มิใช่ผลลัพธ์จาก buffer/clip เชิงพื้นที่แบบเต็มรูปแบบบน GIS
 
 ---
 
 ## แหล่งข้อมูล
 
 Sentinel-2 MSI L2A · Sentinel-1 GRD · SRTM · ESA WorldCover v200 · Google Open Buildings v3
-ประมวลผลบน Google Earth Engine (Gorelick et al., 2017)
+ประมวลผลบน Google Earth Engine (Gorelick et al., 2017) · แนวชายฝั่งจาก OpenStreetMap contributors (ODbL)
 
 ## เทคโนโลยี
 

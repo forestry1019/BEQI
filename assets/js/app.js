@@ -154,14 +154,14 @@ function mapInit(){
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     {maxZoom:18,attribution:'© OpenStreetMap contributors'}).addTo(charts.map);
   D.zones.forEach((z,i)=>{
-    const b=z.bbox,col=[C.teal,C.sand,C.deep][i];
-    L.rectangle([[b[1],b[0]],[b[3],b[2]]],{color:col,weight:2,fillOpacity:.12})
+    const col=[C.teal,C.sand,C.deep][i];
+    const latlngs=z.boundary.map(([lon,lat])=>[lat,lon]);
+    L.polygon(latlngs,{color:col,weight:2,fillOpacity:.12})
       .bindPopup(`<b>${z.name_th}</b><br>${z.sub_th}<br>BEQI ${fx(z.beqi)} · ระดับ ${z.band}<br>
         พื้นที่บก ${fx(z.land_area_km2)} ตร.กม.<br>การรับรอง ${z.cert}`).addTo(charts.map);
   });
-  el('mapnote').textContent='ขอบเขตที่แสดงเป็นกรอบสำรวจ (bounding box) ในระบบพิกัด WGS84 · '+
-    'หน่วยวิเคราะห์ที่ใช้คำนวณค่าดัชนีคือแถบพื้นที่บกกว้าง 1 กิโลเมตรจากแนวน้ำภายในกรอบนี้ '+
-    'ซึ่งมีขอบเขตตามรูปทรงชายฝั่งจริง มิใช่รูปสี่เหลี่ยม';
+  el('mapnote').textContent='ขอบเขตที่แสดงคือแถบพื้นที่บกกว้าง 1 กิโลเมตรจากแนวน้ำเข้าสู่แผ่นดิน '+
+    'ตามรูปทรงชายฝั่งจริง (ระบบพิกัด WGS84) ซึ่งเป็นหน่วยวิเคราะห์ที่ใช้คำนวณค่าดัชนีของแต่ละโซน';
 }
 /* ---------- ช่องว่างและลำดับความสำคัญ ---------- */
 function gapView(){

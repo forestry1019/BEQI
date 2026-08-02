@@ -10,21 +10,17 @@
    คะแนนที่แสดงจึงเป็นค่าเฉลี่ยจาก 3 ตัวชี้วัดที่มีข้อมูลเท่านั้น ยังไม่ใช่ค่า BEQI ฉบับสมบูรณ์
    และยังสรุปสถานะการรับรองไม่ได้จนกว่าจะเชื่อมข้อมูลตัวชี้วัดที่ 4 เข้ามา */
 (function(){
-const AOI=[ // กรอบอ้างอิง 3 โซนหลัก — แสดงเป็นบริบทบนแผนที่เท่านั้น ไม่ใช่ข้อจำกัดของรูปที่วาด
-  {name:'โซนเหนือ — แหลมปะการัง–หาดคึกคัก',bbox:[98.21,8.66,98.28,8.76],col:'#2A9D8F'},
-  {name:'โซนกลาง — หาดบางเนียง–หาดนางทอง',bbox:[98.22,8.61,98.28,8.67],col:'#E9C46A'},
-  {name:'โซนใต้ — อุทยานแห่งชาติเขาหลัก–ลำรู่',bbox:[98.21,8.50,98.31,8.61],col:'#0B3D45'}
-];
+const AOI_COL=['#2A9D8F','#E9C46A','#0B3D45']; // สีอ้างอิง 3 โซนหลัก — แสดงเป็นบริบทบนแผนที่เท่านั้น ไม่ใช่ข้อจำกัดของรูปที่วาด
 const IND=['ที่ 1 พื้นที่สีเขียว','ที่ 2 การเชื่อมโยง (โดยประมาณ)','ที่ 3 การเข้าถึงน้ำ'];
 const BAR_COL=['#2A9D8F','#0B3D45','#E9C46A'];
 const el=id=>document.getElementById(id);
 const fx=(v,d=2)=>Number(v).toLocaleString('th-TH',{minimumFractionDigits:d,maximumFractionDigits:d});
 const clamp01=v=>Math.min(Math.max(v,0),1);
 
-let meta=null, map=null, ready=false;
+let meta=null, zones=null, map=null, ready=false;
 let verts=[], vmarkers=[], polyline=null, polygon=null, closed=false;
 
-fetch('data/beqi.json').then(r=>r.json()).then(d=>{meta=d.meta; boot()})
+fetch('data/beqi.json').then(r=>r.json()).then(d=>{meta=d.meta; zones=d.zones; boot()})
   .catch(()=>{el('pickerMapNote').textContent='โหลดพารามิเตอร์ไม่สำเร็จ';});
 
 function boot(){
@@ -40,9 +36,11 @@ function initMap(){
   map=L.map('pickerMap').setView([8.63,98.26],11);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     {maxZoom:18,attribution:'© OpenStreetMap contributors'}).addTo(map);
-  AOI.forEach(z=>{const b=z.bbox;
-    L.rectangle([[b[1],b[0]],[b[3],b[2]]],
-      {color:z.col,weight:1.5,fillOpacity:.05,dashArray:'4,4'}).bindTooltip(z.name).addTo(map);
+  zones.forEach((z,i)=>{
+    const latlngs=z.boundary.map(([lon,lat])=>[lat,lon]);
+    L.polygon(latlngs,
+      {color:AOI_COL[i],weight:1.5,fillOpacity:.05,dashArray:'4,4'})
+      .bindTooltip(z.name_th+' — '+z.sub_th).addTo(map);
   });
   map.on('click',e=>{
     if(closed) return;
