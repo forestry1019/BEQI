@@ -125,6 +125,20 @@ canvas{max-width:100%}
 .ctl{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-bottom:14px;font-size:14.5px}
 .ctl label{display:flex;gap:7px;align-items:center;cursor:pointer}
 input[type=range]{width:100%;accent-color:var(--teal)}
+input[type=text],select{font:inherit;font-size:14px;padding:9px 11px;border:1px solid var(--line);
+  border-radius:8px;color:var(--ink);background:#fff;min-width:220px}
+input[type=text]:focus,select:focus{outline:2px solid var(--teal);outline-offset:1px}
+input[type=checkbox]{accent-color:var(--teal)}
+
+/* ---------- เปรียบเทียบเชิงพื้นที่ (Spatial Benchmarking) ---------- */
+.sitelist{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.siterow{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--line);
+  border-radius:var(--radius-sm);font-size:14px;flex-wrap:wrap}
+.sitedot{width:12px;height:12px;border-radius:50%;flex:none}
+.sitename{font-weight:600;color:var(--deep)}
+.sitetype{font-size:12px;color:var(--mute)}
+.sitescore{margin-left:auto;font-weight:700;color:var(--teal);font-variant-numeric:tabular-nums}
+.siterow .btn{padding:6px 12px;font-size:12.5px}
 .kv{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14.5px}
 .kv:last-child{border-bottom:0}
 .kv b{font-weight:600;font-variant-numeric:tabular-nums}

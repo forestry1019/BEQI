@@ -13,23 +13,40 @@
 const AOI_COL=['#2A9D8F','#E9C46A','#0B3D45']; // สีอ้างอิง 3 โซนหลัก — แสดงเป็นบริบทบนแผนที่เท่านั้น ไม่ใช่ข้อจำกัดของรูปที่วาด
 const IND=['ที่ 1 พื้นที่สีเขียว','ที่ 2 การเชื่อมโยง (โดยประมาณ)','ที่ 3 การเข้าถึงน้ำ','ที่ 4 องค์ประกอบไบโอฟิลิก (ประมาณจากดาวเทียม)'];
 const BAR_COL=['#2A9D8F','#0B3D45','#E9C46A','#E76F51'];
+// ประเภทพื้นที่ย่อยที่เลือกได้เมื่อบันทึกแปลงที่วาด — ใช้กำหนดสีบนแผนที่และในกราฟเปรียบเทียบ
+const SITE_TYPES=[
+  {id:'beach',label:'ชายหาด',color:'#2A9D8F'},
+  {id:'viewpoint',label:'จุดชมวิว',color:'#E9C46A'},
+  {id:'mangrove',label:'ป่าชายเลน',color:'#3B7A57'},
+  {id:'green',label:'พื้นที่สีเขียว/สวนสาธารณะ',color:'#588157'},
+  {id:'built',label:'พื้นที่สิ่งปลูกสร้าง',color:'#E76F51'},
+  {id:'other',label:'อื่นๆ',color:'#5C7A80'}
+];
 const el=id=>document.getElementById(id);
 const fx=(v,d=2)=>Number(v).toLocaleString('th-TH',{minimumFractionDigits:d,maximumFractionDigits:d});
 const clamp01=v=>Math.min(Math.max(v,0),1);
 
 let meta=null, zones=null, map=null, ready=false;
 let verts=[], vmarkers=[], polyline=null, polygon=null, closed=false;
+// พื้นที่ย่อยที่คำนวณแล้วทั้งหมด (แต่ละแปลงยังอยู่บนแผนที่และในตารางเปรียบเทียบพร้อมกัน)
+// เพื่อรองรับการเปรียบเทียบสมรรถนะเชิงพื้นที่ (Spatial Benchmarking) แทนการดูผลทีละแปลงแบบเดิม
+let sites=[], siteSeq=0, compareCharts={};
 
-fetch('data/beqi.json?v=15').then(r=>r.json()).then(d=>{meta=d.meta; zones=d.zones; boot()})
+fetch('data/beqi.json?v=17').then(r=>r.json()).then(d=>{meta=d.meta; zones=d.zones; boot()})
   .catch(()=>{el('pickerMapNote').textContent='โหลดพารามิเตอร์ไม่สำเร็จ';});
 
 function boot(){
   initMap();
   initAuthUI();
+  populateSiteTypes();
   wireButtons();
   document.querySelector('nav button[data-t="picker"]').addEventListener('click',()=>{
     setTimeout(()=>{if(map) map.invalidateSize();},80);
   });
+}
+
+function populateSiteTypes(){
+  el('siteType').innerHTML=SITE_TYPES.map(t=>`<option value="${t.id}">${t.label}</option>`).join('');
 }
 
 function initMap(){
@@ -81,11 +98,11 @@ function closePolygon(){
 }
 
 function clearAll(){
+  // ล้างเฉพาะจุด/รูปหลายเหลี่ยมที่กำลังวาดค้างอยู่ ไม่แตะต้องพื้นที่ย่อยที่คำนวณและเพิ่มเข้าเปรียบเทียบไปแล้ว
   vmarkers.forEach(m=>map.removeLayer(m)); vmarkers=[];
   if(polyline){map.removeLayer(polyline);polyline=null;}
   if(polygon){map.removeLayer(polygon);polygon=null;}
   verts=[]; closed=false;
-  el('pickerResultCard').hidden=true;
   refreshButtons();
   statusNote();
 }
@@ -95,19 +112,27 @@ function wireButtons(){
   el('closeBtn').onclick=closePolygon;
   el('clearBtn').onclick=clearAll;
   el('runBtn').onclick=runAnalysis;
+  el('siteName').addEventListener('input',refreshButtons);
+  el('clearSitesBtn').onclick=clearAllSites;
+  el('includeZonesChk').onchange=renderComparison;
   refreshButtons();
 }
 function refreshButtons(){
   el('undoBtn').disabled=closed||!verts.length;
   el('closeBtn').disabled=closed||verts.length<3;
-  el('runBtn').disabled=!closed||!ready;
+  const hasName=el('siteName').value.trim().length>0;
+  el('runBtn').disabled=!closed||!ready||!hasName;
 }
 function statusNote(){
   if(closed){
-    el('pickerMapNote').innerHTML='ปิดรูปแล้ว ('+verts.length+' จุดขอบเขต) — กด "คำนวณ BEQI" ด้านล่าง'+
-      (ready?'':' <span class="note" style="margin:0">(ต้องเชื่อมต่อ Earth Engine ก่อน)</span>');
+    const hasName=el('siteName').value.trim().length>0;
+    el('pickerMapNote').innerHTML='ปิดรูปแล้ว ('+verts.length+' จุดขอบเขต) — ตั้งชื่อและเลือกประเภทพื้นที่ย่อยด้านบน แล้วกด "คำนวณ BEQI และเพิ่มเข้าเปรียบเทียบ"'+
+      (ready?'':' <span class="note" style="margin:0">(ต้องเชื่อมต่อ Earth Engine ก่อน)</span>')+
+      (hasName?'':' <span class="note" style="margin:0">(ต้องตั้งชื่อพื้นที่ย่อยก่อน)</span>');
   }else if(verts.length){
     el('pickerMapNote').textContent='วางแล้ว '+verts.length+' จุด — คลิกต่อเพื่อเพิ่มจุด, คลิกจุดแรกซ้ำ หรือกด "ปิดรูปหลายเหลี่ยม" เมื่อครบ (อย่างน้อย 3 จุด)';
+  }else if(sites.length){
+    el('pickerMapNote').textContent='คลิกวาดพื้นที่ย่อยถัดไปทีละจุด (waypoint) เพื่อเปรียบเทียบกับ '+sites.length+' พื้นที่ที่คำนวณไว้แล้ว';
   }else{
     el('pickerMapNote').textContent='คลิกไล่ตามขอบเขตแปลงที่ดินทีละจุด (waypoint) เพื่อเริ่มวาดรูปหลายเหลี่ยม';
   }
@@ -239,7 +264,7 @@ function runAnalysis(){
         el('pickerResult').innerHTML='<div class="warn">คำนวณไม่สำเร็จ: '+err+'</div>';
         return;
       }
-      renderResult(r);
+      addSite(r);
     });
   }catch(e){
     done=true; clearTimeout(timer);
@@ -254,7 +279,10 @@ function certLevel(score,norm){
   for(const rule of meta.cert_rules) if(score>=rule.min_score&&mn>=rule.min_ind) return rule.level;
   return 'ไม่ผ่านการรับรอง';
 }
-function renderResult(r){
+
+// แปลงผลดิบจาก Earth Engine เป็นพื้นที่ย่อยหนึ่งรายการ วาดลงแผนที่ถาวรด้วยสีตามประเภทที่เลือก
+// แล้วเพิ่มเข้าชุดเปรียบเทียบ (sites) เพื่อรองรับการเปรียบเทียบสมรรถนะเชิงพื้นที่หลายพื้นที่ย่อยพร้อมกัน
+function addSite(r){
   const green=(r.g||0)*100, pc=clamp01((r.p||0)/256), w800=(r.w||0)*100;
   const complexity=clamp01((r.sd||0)/0.25);
   const ind4=clamp01(0.4*clamp01(green/100)+0.3*clamp01(w800/100)+0.3*complexity);
@@ -262,7 +290,34 @@ function renderResult(r){
   const norm=[clamp01(green/100),pc,clamp01(w800/100),ind4];
   const overall=norm.reduce((a,b)=>a+b,0)/norm.length*100;
   const level=certLevel(overall,norm);
+  const type=SITE_TYPES.find(t=>t.id===el('siteType').value)||SITE_TYPES[SITE_TYPES.length-1];
+  const name=el('siteName').value.trim()||('พื้นที่ย่อยที่ '+(sites.length+1));
+
+  // แทนที่รูปหลายเหลี่ยมชั่วคราว (สีเดิมตอนกำลังวาด) ด้วยรูปถาวรสีตามประเภทของพื้นที่ย่อยนี้
+  if(polygon){map.removeLayer(polygon);polygon=null;}
+  const layer=L.polygon(verts.slice(),{color:type.color,weight:2,fillColor:type.color,fillOpacity:.22})
+    .bindTooltip(name+' — '+type.label).addTo(map);
+
+  const site={id:++siteSeq,name,type,areaKm2,norm,overall,level,
+    raw:{green,pc,w800,ind4},layer};
+  sites.push(site);
+
+  renderResult(site);
+  renderComparison();
+
+  // เคลียร์สถานะการวาดเพื่อเริ่มพื้นที่ย่อยถัดไปได้ทันที (รูปเดิมยังอยู่บนแผนที่ในฐานะของพื้นที่ย่อยนี้)
+  vmarkers.forEach(m=>map.removeLayer(m)); vmarkers=[];
+  verts=[]; closed=false;
+  el('siteName').value='';
+  refreshButtons();
+  statusNote();
+}
+
+function renderResult(site){
+  const {norm,overall,level,raw,areaKm2}=site;
+  el('pickerResultCard').hidden=false;
   el('pickerResult').innerHTML=`
+    <p class="note" style="margin-top:0">พื้นที่ย่อย: <b>${site.name}</b> · ประเภท: <b>${site.type.label}</b></p>
     <p class="score">${fx(overall)}<small> / 100 · คะแนน BEQI โดยประมาณ (ตัวชี้วัดที่ 4 เป็นค่าประมาณจากดาวเทียม)</small></p>
     <div class="bars">${norm.map((v,i)=>`
       <div class="bar"><div class="bl"><span>${IND[i]}</span><span>${fx(v,3)}</span></div>
@@ -270,12 +325,75 @@ function renderResult(r){
     </div>
     <p class="ci" style="margin:12px 0 0">ระดับโดยประมาณ: <b style="color:#5C7A80">${level}</b>
       <span class="note" style="margin:0">(ต้องยืนยันด้วยแบบตรวจสอบภาคสนาม 14 รูปแบบก่อนออกใบรับรองจริง)</span></p>
-    <div class="kv"><span>ค่าดิบ ความหนาแน่นพื้นที่สีเขียว (NDVI ≥ ${meta.params.ndvi_threshold})</span><b>${fx(green)} %</b></div>
-    <div class="kv"><span>ค่าดิบ ตัวแทนดัชนีการเชื่อมโยง (proxy)</span><b>${fx(pc,4)}</b></div>
-    <div class="kv"><span>ค่าดิบ พื้นที่ในรัศมี 800 ม. จากแหล่งน้ำ</span><b>${fx(w800)} %</b></div>
-    <div class="kv"><span>ค่าดิบ ตัวแทนตัวชี้วัดที่ 4 (พื้นที่สีเขียว + พื้นที่ใกล้น้ำ + ความหลากหลายพื้นผิวพืชพรรณ)</span><b>${fx(ind4,4)}</b></div>
-    <div class="kv"><span>พื้นที่แปลงที่วาด</span><b>${fx(areaKm2,4)} ตร.กม. (${fx(r.area||0,0)} ตร.ม.)</b></div>
-    <div class="kv"><span>จำนวนจุดขอบเขต</span><b>${verts.length} จุด</b></div>
+    <div class="kv"><span>ค่าดิบ ความหนาแน่นพื้นที่สีเขียว (NDVI ≥ ${meta.params.ndvi_threshold})</span><b>${fx(raw.green)} %</b></div>
+    <div class="kv"><span>ค่าดิบ ตัวแทนดัชนีการเชื่อมโยง (proxy)</span><b>${fx(raw.pc,4)}</b></div>
+    <div class="kv"><span>ค่าดิบ พื้นที่ในรัศมี 800 ม. จากแหล่งน้ำ</span><b>${fx(raw.w800)} %</b></div>
+    <div class="kv"><span>ค่าดิบ ตัวแทนตัวชี้วัดที่ 4 (พื้นที่สีเขียว + พื้นที่ใกล้น้ำ + ความหลากหลายพื้นผิวพืชพรรณ)</span><b>${fx(raw.ind4,4)}</b></div>
+    <div class="kv"><span>พื้นที่แปลงที่วาด</span><b>${fx(areaKm2,4)} ตร.กม.</b></div>
     <div class="kv"><span>รุ่นพารามิเตอร์</span><b>${meta.param_version}</b></div>`;
+}
+
+// ตาราง/กราฟเปรียบเทียบพื้นที่ย่อยทั้งหมดพร้อมกัน (Spatial Benchmarking) — เลือกได้ว่าจะรวม
+// 3 โซนหลักของ portfolio เข้ามาเป็นมาตรฐานอ้างอิง (เส้นประในกราฟเรดาร์) หรือไม่
+function renderComparison(){
+  const card=el('compareCard');
+  el('compareEmpty').hidden=!!sites.length;
+  if(!sites.length){ card.hidden=true; return; }
+  card.hidden=false;
+
+  el('siteList').innerHTML=sites.map(s=>`
+    <div class="siterow">
+      <span class="sitedot" style="background:${s.type.color}"></span>
+      <span class="sitename">${s.name}</span>
+      <span class="sitetype">${s.type.label}</span>
+      <span class="sitescore">${fx(s.overall)} / 100</span>
+      <button class="btn ghost" data-remove="${s.id}">ลบ</button>
+    </div>`).join('');
+  el('siteList').querySelectorAll('[data-remove]').forEach(b=>{
+    b.onclick=()=>removeSite(+b.dataset.remove);
+  });
+
+  const includeZones=el('includeZonesChk').checked;
+  const refZones=includeZones?zones:[];
+  const labels=[...sites.map(s=>s.name),...refZones.map(z=>z.name_th+' (อ้างอิง)')];
+  const allNorm=[...sites.map(s=>s.norm),...refZones.map(z=>z.norm)];
+  const allOverall=[...sites.map(s=>s.overall),...refZones.map(z=>z.beqi)];
+  const allColors=[...sites.map(s=>s.type.color),...refZones.map((z,i)=>AOI_COL[i])];
+
+  if(compareCharts.radar) compareCharts.radar.destroy();
+  compareCharts.radar=new Chart(el('compareRadar'),{type:'radar',
+    data:{labels:IND,datasets:labels.map((lb,i)=>({label:lb,data:allNorm[i],
+      borderColor:allColors[i],backgroundColor:'transparent',borderWidth:2,pointRadius:3,
+      borderDash:i>=sites.length?[4,3]:[]}))},
+    options:{scales:{r:{min:0,max:1,ticks:{stepSize:.2,backdropColor:'transparent'},grid:{color:'#DCE6E7'}}},
+      plugins:{legend:{position:'bottom'}}}});
+
+  if(compareCharts.bar) compareCharts.bar.destroy();
+  compareCharts.bar=new Chart(el('compareBar'),{type:'bar',
+    data:{labels,datasets:[{label:'คะแนน BEQI',data:allOverall,backgroundColor:allColors}]},
+    options:{scales:{y:{beginAtZero:true,max:100,grid:{color:'#DCE6E7'}}},plugins:{legend:{display:false}}}});
+
+  el('compareTable').innerHTML='<thead><tr><th>ตัวชี้วัด</th>'+
+    labels.map(lb=>`<th class="n">${lb}</th>`).join('')+'</tr></thead><tbody>'+
+    IND.map((nm,i)=>`<tr><td>${nm}</td>${allNorm.map(n=>`<td class="n">${fx(n[i],4)}</td>`).join('')}</tr>`).join('')+
+    `<tr class="hl"><td>คะแนนรวม</td>${allOverall.map(v=>`<td class="n">${fx(v)}</td>`).join('')}</tr></tbody>`;
+}
+
+function removeSite(id){
+  const idx=sites.findIndex(s=>s.id===id);
+  if(idx<0) return;
+  map.removeLayer(sites[idx].layer);
+  sites.splice(idx,1);
+  if(sites.length) renderResult(sites[sites.length-1]);
+  else el('pickerResultCard').hidden=true;
+  renderComparison();
+}
+
+function clearAllSites(){
+  sites.forEach(s=>map.removeLayer(s.layer));
+  sites=[];
+  el('pickerResultCard').hidden=true;
+  renderComparison();
+  statusNote();
 }
 })();

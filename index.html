@@ -30,6 +30,7 @@
   <button class="on" data-t="picker"><span class="navnum">1</span>วาดขอบเขตแปลงที่ดิน</button>
   <button data-t="overview"><span class="navnum">2</span>ภาพรวม Portfolio</button>
   <button data-t="cert"><span class="navnum">3</span>การรับรองคุณภาพ</button>
+  <button data-t="compare"><span class="navnum">4</span>เปรียบเทียบกับพื้นที่อื่นๆ</button>
 </div></nav>
 
 <main class="wrap">
@@ -40,7 +41,9 @@
     <p class="lead">คลิกไล่ตามขอบเขตแปลงที่ดินจริงทีละจุด (waypoint) เพื่อสร้างรูปหลายเหลี่ยมของแปลงที่สนใจ
       ระบบจะคำนวณดัชนี BEQI จากภาพดาวเทียมเฉพาะภายในรูปทรงนั้นจริง ผ่าน Google Earth Engine — แม่นยำกว่าการวัด
       ด้วยวงกลมรัศมีคงที่รอบจุดเดียว เพราะแปลงที่ดินแต่ละแปลงมีรูปทรงแคบ-กว้างต่างกัน กรอบเส้นประ 3 สีบนแผนที่
-      คือขอบเขต 3 โซนหลักของงานวิจัยไว้อ้างอิงเท่านั้น ไม่ใช่ข้อจำกัดของรูปที่วาด</p>
+      คือขอบเขต 3 โซนหลักของงานวิจัยไว้อ้างอิงเท่านั้น ไม่ใช่ข้อจำกัดของรูปที่วาด วาดได้หลายพื้นที่ย่อยต่อเนื่องกัน
+      (เช่น ชายหาด จุดชมวิว ป่าชายเลน) แล้วไปเปรียบเทียบสมรรถนะเชิงพื้นที่ (Spatial Benchmarking) ของทุกพื้นที่พร้อมกัน
+      ได้ที่แท็บ "เปรียบเทียบกับพื้นที่อื่นๆ" ด้านบน</p>
   </div>
 
   <div class="card" id="geeAuthBox"></div>
@@ -51,14 +54,22 @@
     <div class="ctl" style="margin-top:12px">
       <button class="btn" id="undoBtn" disabled>ย้อนจุดล่าสุด</button>
       <button class="btn" id="closeBtn" disabled>ปิดรูปหลายเหลี่ยม</button>
-      <button class="btn ghost" id="clearBtn">ล้างทั้งหมด</button>
-      <button class="btn primary" id="runBtn" disabled>คำนวณ BEQI จากรูปที่วาด</button>
+      <button class="btn ghost" id="clearBtn">ล้างจุดที่วาดค้างอยู่</button>
+    </div>
+    <div class="ctl" id="siteMetaCtl">
+      <label style="flex-direction:column;align-items:flex-start;gap:4px">ชื่อพื้นที่ย่อย
+        <input type="text" id="siteName" placeholder="เช่น หาดหน้าอ่าว, จุดชมวิวเขาหลัก">
+      </label>
+      <label style="flex-direction:column;align-items:flex-start;gap:4px">ประเภทพื้นที่ย่อย
+        <select id="siteType"></select>
+      </label>
+      <button class="btn primary" id="runBtn" disabled style="align-self:flex-end">คำนวณ BEQI และเพิ่มเข้าเปรียบเทียบ</button>
     </div>
     <p class="note" id="pickerMapNote">กำลังโหลดแผนที่…</p>
   </div>
 
   <div class="card" style="margin-top:16px" id="pickerResultCard" hidden>
-    <h3 style="margin-top:0">ผลการคำนวณของแปลงที่วาด</h3>
+    <h3 style="margin-top:0">ผลการคำนวณของพื้นที่ย่อยล่าสุด</h3>
     <div id="pickerResult"></div>
   </div>
 </section>
@@ -112,6 +123,33 @@
   </div>
 </section>
 
+<section id="compare">
+  <div class="pagehead">
+    <h2>เปรียบเทียบสมรรถนะเชิงพื้นที่ระหว่างพื้นที่อื่นๆ (Spatial Benchmarking)</h2>
+    <p class="lead">เปรียบเทียบคุณภาพโครงสร้างสิ่งแวดล้อมของพื้นที่ย่อยหลายแห่งพร้อมกัน (เช่น ชายหาด จุดชมวิว ป่าชายเลน)
+      ที่วาดไว้ในแท็บ "วาดขอบเขตแปลงที่ดิน" — ก้าวข้ามข้อจำกัดของการประเมินทีละพื้นที่ (single-site assessment)
+      แบบเดิมที่ต้องดูผลแยกทีละรอบ เลือกได้ว่าจะรวม 3 โซนหลักของ Portfolio เข้ามาเป็นมาตรฐานอ้างอิงหรือไม่</p>
+  </div>
+
+  <div class="card" id="compareCard" hidden>
+    <div class="ctl" style="margin-bottom:0">
+      <label><input type="checkbox" id="includeZonesChk" checked> เทียบกับ 3 โซนหลักของ Portfolio เป็นมาตรฐานอ้างอิง</label>
+      <button class="btn ghost" id="clearSitesBtn">ล้างการเปรียบเทียบทั้งหมด</button>
+    </div>
+    <div id="siteList" class="sitelist"></div>
+    <div class="grid g2" style="margin-top:16px">
+      <div><canvas id="compareRadar" height="280"></canvas></div>
+      <div><canvas id="compareBar" height="280"></canvas></div>
+    </div>
+    <div style="overflow-x:auto;margin-top:16px"><table id="compareTable"></table></div>
+  </div>
+
+  <div class="card" id="compareEmpty">
+    <p class="note" style="margin:0">ยังไม่มีพื้นที่ย่อยให้เปรียบเทียบ — ไปที่แท็บ "วาดขอบเขตแปลงที่ดิน" แล้ววาดอย่างน้อย 1 พื้นที่ย่อย
+      พร้อมตั้งชื่อและเลือกประเภท (ชายหาด จุดชมวิว ป่าชายเลน ฯลฯ) ก่อนกด "คำนวณ BEQI และเพิ่มเข้าเปรียบเทียบ"</p>
+  </div>
+</section>
+
 </main>
 
 <footer><div class="wrap">
@@ -121,9 +159,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="assets/js/app.js?v=15"></script>
+<script src="assets/js/app.js?v=17"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/earthengine/1.7.31/earthengine-api.min.js"></script>
-<script src="assets/js/gee-config.js?v=15"></script>
-<script src="assets/js/picker.js?v=15"></script>
+<script src="assets/js/gee-config.js?v=17"></script>
+<script src="assets/js/picker.js?v=17"></script>
 </body>
 </html>
