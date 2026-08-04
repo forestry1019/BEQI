@@ -121,6 +121,16 @@ canvas{max-width:100%}
 .btn.primary:disabled{background:#B7CBCE}
 .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--mute)}
 .btn.ghost:hover{border-color:var(--mute);color:var(--deep)}
+.btn.cta{background:var(--e);color:#fff;padding:16px 30px;font-size:17px;border-radius:12px;
+  box-shadow:0 6px 16px rgba(181,50,44,.3)}
+.btn.cta:hover:not(:disabled){background:#961f1a}
+
+/* ---------- picker how-to ---------- */
+.steplist{list-style:none;margin:0 0 4px;padding:0;display:grid;gap:14px}
+.steplist li{display:flex;gap:14px;align-items:flex-start}
+.stepnum{flex:none;width:26px;height:26px;border-radius:50%;background:var(--teal);color:#fff;
+  font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.steplist b{color:var(--deep)}
 
 .ctl{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-bottom:14px;font-size:14.5px}
 .ctl label{display:flex;gap:7px;align-items:center;cursor:pointer}

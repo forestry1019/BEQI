@@ -16,10 +16,10 @@ const BAR_COL=['#2A9D8F','#0B3D45','#E9C46A','#E76F51'];
 // ประเภทพื้นที่ย่อยที่เลือกได้เมื่อบันทึกแปลงที่วาด — ใช้กำหนดสีบนแผนที่และในกราฟเปรียบเทียบ
 const SITE_TYPES=[
   {id:'beach',label:'ชายหาด',color:'#2A9D8F'},
-  {id:'viewpoint',label:'จุดชมวิว',color:'#E9C46A'},
   {id:'mangrove',label:'ป่าชายเลน',color:'#3B7A57'},
-  {id:'green',label:'พื้นที่สีเขียว/สวนสาธารณะ',color:'#588157'},
-  {id:'built',label:'พื้นที่สิ่งปลูกสร้าง',color:'#E76F51'},
+  {id:'green',label:'พื้นที่สีเขียว',color:'#588157'},
+  {id:'resort',label:'รีสอร์ต',color:'#E9C46A'},
+  {id:'built',label:'สิ่งปลูกสร้าง',color:'#E76F51'},
   {id:'other',label:'อื่นๆ',color:'#5C7A80'}
 ];
 const el=id=>document.getElementById(id);
@@ -173,7 +173,7 @@ function initAuthUI(){
 }
 function showLoginButton(){
   const box=el('geeAuthBox');
-  box.innerHTML='<button id="geeLogin" class="btn">เชื่อมต่อบัญชี Google Earth Engine</button> '+
+  box.innerHTML='<button id="geeLogin" class="btn cta">เชื่อมต่อบัญชี Google Earth Engine</button> '+
     '<span class="note" id="geeStatus" style="margin:0 0 0 10px">ยังไม่ได้เชื่อมต่อ</span>';
   el('geeLogin').onclick=()=>{
     el('geeStatus').textContent='กำลังเปิดหน้าต่างล็อกอินของ Google… (หากไม่มีป๊อปอัปเด้งขึ้นมา '+
